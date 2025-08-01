@@ -1,0 +1,2606 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFA - Financeiro Fazenda Aliança</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- jsPDF Library for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937; /* Cor cinza escuro (bg-gray-800) */
+        }
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="month"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(0.6);
+        }
+        .hidden {
+            display: none;
+        }
+        /* Estilos do modal principal (já existente) */
+        .modal-overlay { transition: opacity 0.3s ease; }
+        .modal-container { transition: transform 0.3s ease; }
+        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Custom CSS for the donut chart (from Caixinhas code) */
+        .donut-chart {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 600; /* font-semibold */
+            color: #374151; /* gray-700 */
+        }
+        .donut-chart::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px; /* Inner circle size */
+            height: 60px;
+            background-color: #ffffff; /* White inner circle */
+            border-radius: 50%;
+        }
+        .donut-chart-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                #10B981 var(--progress), /* emerald-500 */
+                #E5E7EB var(--progress) /* gray-200 */
+            );
+        }
+
+        /* Modal specific styles (for Caixinhas modals, using specific IDs to avoid conflict) */
+        #addEditCaixinhaModal.modal-overlay,
+        #paymentDetailsModal.modal-overlay,
+        #confirmCaixinhaModal.modal-overlay,
+        #editSaidaModal.modal-overlay { /* Adicionado novo modal */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #addEditCaixinhaModal.modal-overlay.show,
+        #paymentDetailsModal.modal-overlay.show,
+        #confirmCaixinhaModal.modal-overlay.show,
+        #editSaidaModal.modal-overlay.show { /* Adicionado novo modal */
+            opacity: 1;
+            visibility: visible;
+        }
+        #addEditCaixinhaModal .modal-content,
+        #paymentDetailsModal .modal-content,
+        #confirmCaixinhaModal .modal-content,
+        #editSaidaModal .modal-content { /* Adicionado novo modal */
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        #addEditCaixinhaModal.modal-overlay.show .modal-content,
+        #paymentDetailsModal.modal-overlay.show .modal-content,
+        #confirmCaixinhaModal.modal-overlay.show .modal-content,
+        #editSaidaModal.modal-overlay.show .modal-content { /* Adicionado novo modal */
+            transform: translateY(0);
+        }
+        .modal-close-btn { /* This style is reused for new modals */
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6B7280; /* gray-500 */
+        }
+        /* Confirmation Modal specific styles (from Caixinhas code) */
+        #confirmCaixinhaModal .modal-content, #editSaidaModal .modal-content {
+            width: 300px;
+            text-align: center;
+        }
+        #confirmCaixinhaModal .modal-content button, #editSaidaModal .modal-content button {
+            margin: 0 0.5rem;
+        }
+        /* Specific width for the add/edit caixinha modal */
+        #addEditCaixinhaModal .modal-content {
+            max-width: 600px; /* Adjust as needed */
+        }
+        #paymentDetailsModal .modal-content {
+             max-width: 800px; /* Aumentar a largura do modal de detalhes */
+        }
+
+        /* Estilos para o painel de resumo mensal */
+        .monthly-summary-scroller {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .monthly-summary-scroller::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, and Opera */
+        }
+    </style>
+</head>
+<body class="bg-red-900"> <!-- COR DE TESTE -->
+
+    <!-- ======================================================= -->
+    <!-- TELA DE LOGIN                                           -->
+    <!-- ======================================================= -->
+    <div id="login-screen" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Acesso FFA (TESTE)</h2>
+            <div id="login-content" class="mt-6 text-center">
+                <p class="text-gray-600 mb-4">Faça login para continuar</p>
+                <button id="google-login-btn" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12.24 10.29v2.18h6.35c-.27 1.48-1.5 3.1-3.65 3.1-2.93 0-5.3-2.37-5.3-5.3s2.37-5.3 5.3-5.3c1.6 0 2.87.69 3.53 1.33l1.87-1.87c-1.1-1.03-2.58-1.9-5.4-1.9-4.57 0-8.28 3.71-8.28 8.28s3.71 8.28 8.28 8.28c4.68 0 7.84-3.3 7.84-8.08 0-.58-.06-1.14-.15-1.68h-7.69z" fill="#fff"/>
+                    </svg>
+                    Entrar com Google
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- TELA DE ACESSO NEGADO                                   -->
+    <!-- ======================================================= -->
+    <div id="access-denied-screen" class="hidden flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
+            <h2 class="text-3xl font-bold text-red-600 mb-4">Acesso Negado</h2>
+            <p id="access-denied-message" class="text-gray-700 mb-6">Seu usuário não tem permissão para acessar este sistema. Por favor, contate o administrador.</p>
+            <button onclick="window.location.reload();" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-300">
+                Tentar Novamente
+            </button>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- CONTEÚDO PRINCIPAL DO APLICATIVO                        -->
+    <!-- ======================================================= -->
+    <div id="app-container" class="hidden">
+        
+        <!-- NOVO HEADER DE NAVEGAÇÃO FIXO -->
+        <header class="sticky top-0 z-40 bg-gray-800 shadow-lg">
+            <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <a href="#" class="nav-link flex items-center text-white font-bold text-xl" data-target="main">
+                           <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                           FFA
+                        </a>
+                    </div>
+                    <div class="hidden md:flex items-center space-x-4">
+                        <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="entries">Entradas</a>
+                        <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="saidas">Saídas</a>
+                        <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="pagamentos">Pagamentos</a>
+                        <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="cadastrosNav">Cadastros</a>
+                        <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="extrato">Extrato</a>
+                        <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="caixinhas">Caixinhas</a>
+                    </div>
+                    <div class="flex items-center">
+                        <span id="logged-in-user-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hidden sm:block"></span>
+                        <div id="version-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg cursor-pointer hover:bg-gray-700 transition-colors ml-3">
+                            Versão 2.5 (Teste)
+                        </div>
+                        <button id="logout-btn" class="ml-3 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hover:bg-red-700 transition-colors">
+                            Sair
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <!-- ======================================================= -->
+        <!-- TELA PRINCIPAL / PAINEL                                 -->
+        <!-- ======================================================= -->
+        <div id="main-screen" class="pt-8">
+            <div class="flex flex-col items-center justify-center min-h-screen p-4">
+                <div class="text-center mb-12"><h1 class="text-4xl md:text-5xl font-bold text-gray-100">FFA (TESTE)</h1><p class="text-lg text-gray-400 mt-2">Financeiro Fazenda Aliança</p></div>
+                
+                <!-- VISTA CLÁSSICA (QUANDO NÃO HÁ CONTAS VENCENDO HOJE) -->
+                <div id="home-classic-view" class="w-full max-w-2xl hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-green-500 transition-all duration-300" data-target="entries"><h2 class="text-xl font-semibold text-gray-700">Entradas</h2></a>
+                        <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-red-500 transition-all duration-300" data-target="saidas"><h2 class="text-xl font-semibold text-gray-700">Saídas</h2></a>
+                        <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-teal-500 transition-all duration-300" data-target="pagamentos"><h2 class="text-xl font-semibold text-gray-700">Pagamentos</h2></a>
+                        <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-purple-500 transition-all duration-300" data-target="cadastrosNav"><h2 class="text-xl font-semibold text-gray-700">Cadastros</h2></a>
+                        <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-blue-500 transition-all duration-300" data-target="extrato"><h2 class="text-xl font-semibold text-gray-700">Extrato</h2></a>
+                        <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-emerald-500 transition-all duration-300" data-target="caixinhas"><h2 class="text-xl font-semibold text-gray-700">Caixinhas</h2></a>
+                        <a href="https://lookerstudio.google.com/reporting/1ae612d8-5be7-4c08-bfaa-4d5881e5fdcd" target="_blank" class="group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-yellow-500 transition-all duration-300 md:col-span-2"><h2 class="text-xl font-semibold text-gray-700">Dashboard</h2></a>
+                    </div>
+                </div>
+
+                <!-- VISTA DASHBOARD (QUANDO HÁ CONTAS VENCENDO HOJE OU VENCIDAS) -->
+                <div id="home-dashboard-view" class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-5 gap-8 hidden">
+                    <div class="lg:col-span-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-green-500 transition-all duration-300" data-target="entries"><h2 class="text-xl font-semibold text-gray-700">Entradas</h2></a>
+                            <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-red-500 transition-all duration-300" data-target="saidas"><h2 class="text-xl font-semibold text-gray-700">Saídas</h2></a>
+                            <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-teal-500 transition-all duration-300" data-target="pagamentos"><h2 class="text-xl font-semibold text-gray-700">Pagamentos</h2></a>
+                            <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-purple-500 transition-all duration-300" data-target="cadastrosNav"><h2 class="text-xl font-semibold text-gray-700">Cadastros</h2></a>
+                            <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-blue-500 transition-all duration-300" data-target="extrato"><h2 class="text-xl font-semibold text-gray-700">Extrato</h2></a>
+                            <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-emerald-500 transition-all duration-300" data-target="caixinhas"><h2 class="text-xl font-semibold text-gray-700">Caixinhas</h2></a>
+                            <a href="https://lookerstudio.google.com/reporting/1ae612d8-5be7-4c08-bfaa-4d5881e5fdcd" target="_blank" class="group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-yellow-500 transition-all duration-300 sm:col-span-2"><h2 class="text-xl font-semibold text-gray-700">Dashboard</h2></a>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
+                        <div id="overdue-panel" class="hidden"></div>
+                        <div id="due-today-panel" class="hidden"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- TELA DE CAIXINHAS (NOVA)                                -->
+        <!-- ======================================================= -->
+        <div id="caixinhas-screen" class="hidden min-h-screen flex flex-col items-center p-4 pt-24">
+            <div class="container mx-auto p-4 sm:p-6 lg:p-8 w-full">
+                <header class="w-full max-w-4xl bg-white shadow-md rounded-xl p-6 mb-8 flex flex-col md:flex-row justify-between items-center mx-auto">
+                    <h1 class="text-3xl font-bold text-gray-800 mb-4 md:mb-0">Minhas Caixinhas de Economia</h1>
+                    <div class="text-center md:text-right">
+                        <p class="text-sm text-gray-600">Total Guardado nas Caixinhas</p>
+                        <p id="totalCaixinhasSaved" class="text-2xl font-bold text-emerald-600">R$ 0,00</p>
+                    </div>
+                </header>
+
+                <main class="w-full max-w-4xl mx-auto">
+                    <div id="mainCaixinhasContent">
+                        <section>
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-semibold text-gray-700">Caixinhas Ativas</h2>
+                                <button id="showAddCaixinhaBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                                    + Adicionar Nova Caixinha
+                                </button>
+                            </div>
+                            <div id="caixinhasContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            </div>
+                        </section>
+
+                        <section class="mt-12">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-semibold text-gray-700">Caixinhas Arquivadas</h2>
+                                <button id="toggleArchivedBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md shadow-lg transition">
+                                    Mostrar Arquivadas
+                                </button>
+                            </div>
+                            <div id="archivedCaixinhasContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            </div>
+                        </section>
+                    </div>
+                </main>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- TELA DE ENTRADAS                                        -->
+        <!-- ======================================================= -->
+        <div id="entries-screen" class="hidden pt-24">
+            <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <div class="lg:col-span-2">
+                        <div class="bg-white p-8 rounded-xl shadow-md">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6">Nova Entrada</h2>
+                            <form id="entry-form" class="space-y-6">
+                                <div><label for="entry-tipo" class="block text-sm font-medium text-gray-700 mb-1">Tipo <span class="text-red-500">*</span></label><select id="entry-tipo" name="tipo" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"><option value="Venda">Venda</option><option value="Arrendamento">Arrendamento</option></select></div>
+                                <div><label for="entry-data" class="block text-sm font-medium text-gray-700 mb-1">Data <span class="text-red-500">*</span></label><input type="datetime-local" id="entry-data" name="data" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></div>
+                                <div><label for="entry-valor" class="block text-sm font-medium text-gray-700 mb-1">Valor (R$) <span class="text-red-500">*</span></label><input type="text" id="entry-valor" name="valor" placeholder="R$ 0,00" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></div>
+                                <div><label for="entry-observacao" class="block text-sm font-medium text-gray-700 mb-1">Observação</label><textarea id="entry-observacao" name="observacao" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition" placeholder="Detalhes da venda, cliente, etc."></textarea></div>
+                                <div><button type="submit" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300">Salvar Entrada</button></div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-3">
+                        <div class="bg-white p-8 rounded-xl shadow-md min-h-full flex flex-col">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6">Entradas Registradas</h2>
+                            <div class="flex-grow">
+                                <div class="hidden md:grid grid-cols-10 gap-4 pb-3 border-b text-sm font-semibold text-gray-500 uppercase"><div class="col-span-4">Data</div><div class="col-span-3">Tipo</div><div class="col-span-2">Valor</div><div class="col-span-1 text-right">Ações</div></div>
+                                <div id="entries-list" class="mt-4 space-y-4"></div>
+                            </div>
+                            <div id="pagination-controls" class="mt-6 flex justify-between items-center hidden">
+                                <button id="prev-page" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">Anterior</button>
+                                <span id="page-info" class="text-sm text-gray-600"></span>
+                                <button id="next-page" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition">Próxima</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- TELA DE SAÍDAS                                          -->
+        <!-- ======================================================= -->
+        <div id="saidas-screen" class="hidden pt-24">
+            <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <div class="lg:col-span-2">
+                        <div class="bg-white p-8 rounded-xl shadow-md">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6">Nova Saída</h2>
+                            <form id="saida-form" class="space-y-6">
+                                <div class="relative">
+                                    <label for="saida-conta-search" class="block text-sm font-medium text-gray-700 mb-1">Conta <span class="text-red-500">*</span></label>
+                                    <input type="text" id="saida-conta-search" placeholder="Clique ou digite para pesquisar..." class="w-full px-4 py-2 border border-gray-300 rounded-lg" autocomplete="off">
+                                    <input type="hidden" id="saida-conta-selected-id">
+                                    <div id="saida-conta-results" class="absolute z-10 w-full bg-white border border-gray-300 rounded-b-lg max-h-48 overflow-y-auto hidden"></div>
+                                </div>
+                                <div><label for="saida-pessoa-select" class="block text-sm font-medium text-gray-700 mb-1">Dono da Conta <span class="text-red-500">*</span></label><select id="saida-pessoa-select" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></select></div>
+                                <div>
+                                    <label for="saida-descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                                    <textarea id="saida-descricao" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Compra de insumos, adiantamento, etc."></textarea>
+                                </div>
+                                <div><label for="saida-valor" class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$) <span class="text-red-500">*</span></label><input type="text" id="saida-valor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                                <div>
+                                    <label for="saida-vencimento" id="saida-vencimento-label" class="block text-sm font-medium text-gray-700 mb-1">Vencimento</label>
+                                    <input type="date" id="saida-vencimento" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                </div>
+                                <div class="flex items-center"><input id="saida-parcelado-check" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded"><label for="saida-parcelado-check" class="ml-2 block text-sm text-gray-900">Lançamento Parcelado?</label></div>
+                                <div id="parcelamento-fields" class="hidden space-y-6">
+                                    <div><label for="saida-qtd-parcelas" class="block text-sm font-medium text-gray-700 mb-1">Qtd. Parcelas</label><input type="number" id="saida-qtd-parcelas" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="2"></div>
+                                </div>
+                                <div><button type="submit" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700">Lançar Saída</button></div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-3">
+                        <div class="bg-white p-8 rounded-xl shadow-md min-h-full flex flex-col">
+                            <h2 class="text-2xl font-bold text-gray-800 mb-6">Última Saída Cadastrada</h2>
+                            <div class="mb-4 p-4 bg-gray-100 rounded-lg text-center">
+                                <p class="text-sm text-gray-600">Total Recém-Cadastrado</p>
+                                <p id="saidas-total" class="text-2xl font-bold text-red-600">R$ 0,00</p>
+                            </div>
+                            <div id="saidas-list-container" class="flex-grow space-y-3">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- TELA DE PAGAMENTOS                                      -->
+        <!-- ======================================================= -->
+        <div id="pagamentos-screen" class="hidden pt-24">
+            <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+                <div class="bg-white p-8 rounded-xl shadow-md">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Contas a Pagar</h2>
+                    
+                    <div id="monthly-summary-container" class="mb-8 p-4 bg-gray-50 rounded-lg border">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-semibold text-gray-700">Resumo Mensal</h3>
+                            <button id="toggle-summary-panel" class="p-1 text-gray-500 hover:text-gray-800">
+                                <svg id="toggle-summary-icon" class="w-6 h-6 transition-transform transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+                        <div id="monthly-summary-content" class="relative">
+                            <button id="scroll-summary-left" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full p-1 shadow-md cursor-pointer">
+                                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            <div id="monthly-summary-scroller" class="monthly-summary-scroller flex overflow-x-auto space-x-4 py-2 scroll-smooth">
+                            </div>
+                            <button id="scroll-summary-right" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/80 hover:bg-white rounded-full p-1 shadow-md cursor-pointer">
+                                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="sticky top-16 bg-white z-10 py-4 border-b-2 border-gray-200 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="search" id="pagamentos-search" placeholder="Pesquisar por conta ou descrição..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <input type="month" id="pagamentos-month-filter" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <div class="flex items-center">
+                                <input id="pagamentos-filter-caixinha" type="checkbox" class="h-4 w-4 text-teal-600 border-gray-300 rounded">
+                                <label for="pagamentos-filter-caixinha" class="ml-2 block text-sm text-gray-900">Mostrar apenas Caixinhas</label>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex flex-col md:flex-row justify-between items-center">
+                            <div class="text-center md:text-left mb-4 md:mb-0">
+                                <p class="text-sm text-gray-600">Total Selecionado</p>
+                                <p id="pagamentos-total-selecionado" class="text-2xl font-bold text-teal-600">R$ 0,00</p>
+                            </div>
+                            <button id="btn-pagar-selecionados" class="w-full md:w-auto bg-teal-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Pagar Selecionados</button>
+                        </div>
+                    </div>
+                    
+                    <div id="pagamentos-list-container" class="space-y-3"></div>
+
+                    <!-- PAGINAÇÃO PARA PAGAMENTOS -->
+                    <div id="pagamentos-pagination" class="mt-6 flex justify-between items-center hidden">
+                        <button id="pagamentos-prev-page" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Anterior</button>
+                        <span id="pagamentos-page-info" class="text-sm text-gray-600"></span>
+                        <button id="pagamentos-next-page" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Próxima</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- TELA DE EXTRATO                                         -->
+        <!-- ======================================================= -->
+        <div id="extrato-screen" class="hidden pt-24">
+            <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+                <div class="bg-white p-8 rounded-xl shadow-md">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Extrato da Conta</h2>
+                    
+                    <div class="flex flex-wrap gap-4 mb-6 items-center">
+                        <div class="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="search" id="extrato-search" placeholder="Pesquisar na descrição..." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <input type="date" id="extrato-start-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-500" title="Data de início">
+                            <input type="date" id="extrato-end-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-500" title="Data de fim">
+                        </div>
+                        <button id="btn-generate-pdf" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                            Gerar PDF
+                        </button>
+                    </div>
+
+                    <div class="hidden md:grid grid-cols-12 gap-4 pb-3 border-b text-sm font-semibold text-gray-500 uppercase">
+                        <div class="col-span-1"></div>
+                        <div class="col-span-4">Descrição</div>
+                        <div class="col-span-2 text-right">Valor</div>
+                        <div class="col-span-3 text-right">Saldo</div>
+                        <div class="col-span-2 text-right">Data</div>
+                    </div>
+
+                    <div id="extrato-list" class="mt-4 space-y-2"></div>
+                    
+                    <div id="extrato-pagination" class="mt-6 flex justify-between items-center hidden">
+                        <button id="extrato-prev-page" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Anterior</button>
+                        <span id="extrato-page-info" class="text-sm text-gray-600"></span>
+                        <button id="extrato-next-page" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Próxima</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ======================================================= -->
+        <!-- TELA DE NAVEGAÇÃO DE CADASTROS                          -->
+        <!-- ======================================================= -->
+        <div id="cadastros-nav-screen" class="hidden pt-24">
+            <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+                <h2 class="text-3xl font-bold text-gray-100 mb-8 text-center">Cadastros</h2>
+                <div class="max-w-lg mx-auto grid grid-cols-1 gap-4">
+                    <a href="#" class="nav-link text-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-indigo-500 transition-all duration-300" data-target="tipos"><h3 class="text-xl font-semibold text-gray-700">Cadastro de Tipos de Empresa</h3></a>
+                    <a href="#" class="nav-link text-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-indigo-500 transition-all duration-300" data-target="empresas"><h3 class="text-xl font-semibold text-gray-700">Cadastro de Empresas</h3></a>
+                    <a href="#" class="nav-link text-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-indigo-500 transition-all duration-300" data-target="contas"><h3 class="text-xl font-semibold text-gray-700">Cadastro de Contas</h3></a>
+                    <a href="#" class="nav-link text-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-indigo-500 transition-all duration-300" data-target="pessoas"><h3 class="text-xl font-semibold text-gray-700">Cadastro de Pessoas</h3></a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ======================================================= -->
+        <!-- TELAS DE CADASTRO (Estrutura genérica)                  -->
+        <!-- ======================================================= -->
+        <div id="tipos-screen" class="hidden cadastro-screen pt-24"></div>
+        <div id="empresas-screen" class="hidden cadastro-screen pt-24"></div>
+        <div id="contas-screen" class="hidden cadastro-screen pt-24"></div>
+        <div id="pessoas-screen" class="hidden cadastro-screen pt-24"></div>
+    </div>
+
+
+    <!-- MODAL DE CONFIRMAÇÃO/ALERTA (principal do app) -->
+    <div id="modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div id="modal-overlay" class="fixed inset-0 bg-black bg-opacity-50"></div>
+        <div id="modal-container" class="modal-container bg-white w-full max-w-md p-6 rounded-lg shadow-xl z-10">
+            <h3 id="modal-title" class="text-lg font-bold text-gray-800 mb-4"></h3>
+            <div id="modal-buttons" class="flex justify-end space-x-4">
+                <button id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancelar</button>
+                <button id="modal-confirm" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVO MODAL PARA SELEÇÃO DE LINK (Versões/Sobre o Sistema) -->
+    <div id="link-selection-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-black bg-opacity-50" onclick="document.getElementById('link-selection-modal').classList.add('hidden');"></div>
+        <div class="bg-white w-full max-w-sm p-6 rounded-lg shadow-xl z-10 text-center">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Escolha uma opção:</h3>
+            <div class="flex flex-col space-y-4">
+                <button id="btn-open-versions" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Versões</button>
+                <button id="btn-open-about" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Sobre o Sistema</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA EXIBIR CONTEÚDO (agora usado para os links do Google Sheets) -->
+    
+    <div id="about-system-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="fixed inset-0 bg-black bg-opacity-50" onclick="document.getElementById('about-system-modal').classList.add('hidden');"></div>
+
+    <div class="bg-white w-full max-w-4xl h-3/4 rounded-lg shadow-xl z-10 flex flex-col">
+
+        <div class="flex justify-between items-center p-4 border-b border-gray-200">
+            <h3 id="about-system-modal-title" class="text-lg font-bold text-gray-800"></h3>
+            </div>
+
+        <iframe id="about-system-iframe" src="" class="flex-grow w-full border-0 rounded-b-lg"></iframe>
+
+    </div>
+</div>
+
+    <!-- Modal para Adicionar/Editar Nova Caixinha (do código fornecido) -->
+    <div id="addEditCaixinhaModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeAddEditModalBtn">&times;</button>
+            <h2 id="formTitle" class="text-2xl font-semibold text-gray-700 mb-4">Adicionar Nova Caixinha</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="caixinhaName" class="block text-sm font-medium text-gray-700">Nome da Caixinha</label>
+                    <input type="text" id="caixinhaName" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" placeholder="Ex: Meu IPTU">
+                </div>
+                <div>
+                    <label for="caixinhaValue" class="block text-sm font-medium text-gray-700">Valor Total (R$)</label>
+                    <input type="number" id="caixinhaValue" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" placeholder="Ex: 1200">
+                </div>
+                <div>
+                    <label for="caixinhaInstallments" class="block text-sm font-medium text-gray-700">Parcelas (meses)</label>
+                    <input type="number" id="caixinhaInstallments" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" placeholder="Ex: 12">
+                </div>
+                <div>
+                    <label for="paymentDay" class="block text-sm font-medium text-gray-700">Dia do Vencimento</label>
+                    <input type="number" id="paymentDay" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" placeholder="Ex: 10" min="1" max="31">
+                </div>
+                <div class="md:col-span-2">
+                    <label for="caixinhaStartDate" class="block text-sm font-medium text-gray-700">Mês de Início</label>
+                    <input type="month" id="caixinhaStartDate" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+                </div>
+                <div class="md:col-span-2">
+                    <label for="caixinhaDescription" class="block text-sm font-medium text-gray-700">Descrição (Onde está o dinheiro?)</label>
+                    <textarea id="caixinhaDescription" rows="2" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" placeholder="Ex: NuConta, Caixa do Banco, etc."></textarea>
+                </div>
+            </div>
+            <button id="submitCaixinhaBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                Criar Caixinha
+            </button>
+            <button id="cancelAddEditModalBtn" class="w-full mt-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-3 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                Cancelar
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal para detalhes de pagamento (do código fornecido) -->
+    <div id="paymentDetailsModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closePaymentDetailsModalBtn">&times;</button>
+            <h3 id="modalTitle" class="text-2xl font-bold text-gray-800 mb-4"></h3>
+            <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                <p class="text-gray-600">Meta Total: <span id="modalTotalValue" class="font-semibold"></span></p>
+                <p class="text-gray-600">Valor Salvo: <span id="modalCurrentSaved" class="font-semibold"></span></p>
+                <p class="text-gray-600">Parcela Mensal: <span id="modalMonthlyPayment" class="font-semibold"></span></p>
+            </div>
+            <!-- CABEÇALHO ATUALIZADO -->
+            <div class="flex justify-between items-center text-xs font-semibold text-gray-500 mb-2 border-b pb-1">
+                <span class="w-1/6 text-left">Mês</span>
+                <span class="w-1/6 text-center">Vencimento</span>
+                <span class="w-1/6 text-center">Valor Parcela</span>
+                <span class="w-1/6 text-center">Valor Pago</span>
+                <span class="w-1/6 text-center">Data Pag.</span>
+                <span class="w-1/6 text-right">Status</span>
+            </div>
+            <div id="paymentList" class="space-y-2">
+                <!-- Detalhes dos pagamentos serão injetados aqui -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação para Exclusão (do código fornecido, renomeado para evitar conflito) -->
+    <div id="confirmCaixinhaModal" class="modal-overlay">
+        <div class="modal-content confirm-modal-content">
+            <h3 id="confirmCaixinhaModalTitle" class="text-xl font-bold text-gray-800 mb-4">Confirmar Ação</h3>
+            <p id="confirmCaixinhaModalText" class="text-gray-700 mb-6"></p>
+            <div class="flex justify-center">
+                <button id="confirmCaixinhaActionBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    Confirmar
+                </button>
+                <button id="cancelCaixinhaActionBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVO: Modal para Editar Valor da Saída -->
+    <div id="editSaidaModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Editar Valor da Conta</h3>
+            <div class="mb-4">
+                <label for="editSaidaValor" class="block text-sm font-medium text-gray-700 text-left">Novo Valor (R$)</label>
+                <input type="text" id="editSaidaValor" class="mt-1 block w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div class="flex justify-center">
+                <button id="submitEditSaidaBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md shadow-lg">
+                    Salvar
+                </button>
+                <button id="cancelEditSaidaBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md shadow-lg">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulos do Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, deleteDoc, doc, query, setLogLevel, runTransaction, setDoc, addDoc, writeBatch, updateDoc, getDoc, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        try {
+            // --- 1. CONFIGURAÇÃO DO FIREBASE ---
+            const firebaseConfig = {
+             apiKey: "AIzaSyC8Upf9O3-h-RIU8q3Gr3zM37wE2bwTzeM",
+            authDomain: "ffa-teste.firebaseapp.com",
+            projectId: "ffa-teste",
+            storageBucket: "ffa-teste.firebasestorage.app",
+            messagingSenderId: "788536063162",
+            appId: "1:788536063162:web:6c72e026444742b5bffe83"
+            };
+
+            if (!firebaseConfig.apiKey) {
+                throw new Error("A configuração do Firebase (firebaseConfig) está em falta ou incompleta.");
+            }
+
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            setLogLevel('debug');
+
+            // --- 2. REFERÊNCIAS AOS ELEMENTOS DO DOM ---
+            const loginScreen = document.getElementById('login-screen');
+            const appContainer = document.getElementById('app-container');
+            const accessDeniedScreen = document.getElementById('access-denied-screen');
+            const googleLoginBtn = document.getElementById('google-login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const loggedInUserDisplay = document.getElementById('logged-in-user-display');
+            const accessDeniedMessageEl = document.getElementById('access-denied-message');
+
+            // --- 3. FUNÇÕES AUXILIARES E LÓGICA PRINCIPAL ---
+            const checkUserPermission = async (user) => {
+                const accessConfigRef = doc(db, 'config', 'access');
+                const accessConfigSnap = await getDoc(accessConfigRef);
+                if (accessConfigSnap.exists()) {
+                    const allowedUids = accessConfigSnap.data().allowedUids || [];
+                    return Array.isArray(allowedUids) && allowedUids.includes(user.uid);
+                }
+                return false;
+            };
+            
+            let appInitialized = false;
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    const isAllowed = await checkUserPermission(user);
+                    if (isAllowed) {
+                        loginScreen.classList.add('hidden');
+                        accessDeniedScreen.classList.add('hidden');
+                        appContainer.classList.remove('hidden');
+                        loggedInUserDisplay.textContent = user.displayName || user.email;
+                        if (!appInitialized) {
+                            initializeAppContent(db, firebaseConfig.appId);
+                            appInitialized = true;
+                        }
+                    } else {
+                        accessDeniedMessageEl.textContent = `Seu usuário (${user.email}) não tem permissão.`;
+                        loginScreen.classList.add('hidden');
+                        appContainer.classList.add('hidden');
+                        accessDeniedScreen.classList.remove('hidden');
+                        await signOut(auth);
+                    }
+                } else {
+                    loginScreen.classList.remove('hidden');
+                    appContainer.classList.add('hidden');
+                    accessDeniedScreen.classList.add('hidden');
+                }
+            });
+
+            googleLoginBtn.addEventListener('click', async () => {
+                googleLoginBtn.disabled = true;
+                googleLoginBtn.textContent = "Conectando...";
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    googleLoginBtn.disabled = false;
+                    googleLoginBtn.innerHTML = `<svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12.24 10.29v2.18h6.35c-.27 1.48-1.5 3.1-3.65 3.1-2.93 0-5.3-2.37-5.3-5.3s2.37-5.3 5.3-5.3c1.6 0 2.87.69 3.53 1.33l1.87-1.87c-1.1-1.03-2.58-1.9-5.4-1.9-4.57 0-8.28 3.71-8.28 8.28s3.71 8.28 8.28 8.28c4.68 0 7.84-3.3 7.84-8.08 0-.58-.06-1.14-.15-1.68h-7.69z" fill="#fff"/></svg>Entrar com Google`;
+                    if (error.code !== 'auth/popup-closed-by-user') {
+                       alert(`Erro no login: ${error.message}`);
+                    }
+                }
+            });
+
+            logoutBtn.addEventListener('click', () => signOut(auth));
+
+        } catch (error) {
+            console.error("ERRO CRÍTICO NA INICIALIZAÇÃO:", error);
+            const loginContent = document.getElementById('login-content');
+            if (loginContent) {
+                loginContent.innerHTML = `
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold text-red-600 mb-2">Erro Crítico de Inicialização</h3>
+                        <p class="text-gray-700 mb-4">Não foi possível carregar as configurações do Firebase.</p>
+                        <p class="text-left text-xs bg-gray-100 p-2 rounded border border-red-300 text-red-700">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // --- LÓGICA DO MODAL DE CONFIRMAÇÃO/ALERTA PRINCIPAL ---
+        const modalEl = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalConfirmBtn = document.getElementById('modal-confirm');
+        const modalCancelBtn = document.getElementById('modal-cancel');
+        let modalResolve;
+
+        const modal = {
+            show: (message, showCancel = true) => {
+                modalTitle.textContent = message;
+                modalCancelBtn.classList.toggle('hidden', !showCancel);
+                modalEl.classList.remove('hidden');
+                return new Promise(resolve => {
+                    modalResolve = resolve;
+                });
+            },
+            hide: () => {
+                modalEl.classList.add('hidden');
+            }
+        };
+        modalConfirmBtn.addEventListener('click', () => { modal.hide(); if(modalResolve) modalResolve(true); });
+        modalCancelBtn.addEventListener('click', () => { modal.hide(); if(modalResolve) modalResolve(false); });
+        document.getElementById('modal-overlay').addEventListener('click', () => { modal.hide(); if(modalResolve) modalResolve(false); });
+
+        // --- LÓGICA DE INICIALIZAÇÃO DO CONTEÚDO PRINCIPAL ---
+        const initializeAppContent = (db, appId) => {
+            const linkSelectionModal = document.getElementById('link-selection-modal');
+            const btnOpenVersions = document.getElementById('btn-open-versions');
+            const btnOpenAbout = document.getElementById('btn-open-about');
+            const aboutSystemModal = document.getElementById('about-system-modal');
+            const aboutSystemModalTitle = document.getElementById('about-system-modal-title');
+            const aboutSystemIframe = document.getElementById('about-system-iframe');
+            const versionDisplay = document.getElementById('version-display');
+
+            const VERSIONS_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmbNDYhpXpj3OrMgGYJGd3O2uN63UcnIj5qHgMjtsDapbQ6zZfqT1aFTTyVXI5bT_2lkfYdjR6_6nA/pubhtml?gid=0&single=true";
+            const ABOUT_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmbNDYhpXpj3OrMgGYJGd3O2uN63UcnIj5qHgMjtsDapbQ6zZfqT1aFTTyVXI5bT_2lkfYdjR6_6nA/pubhtml?gid=78276015&single=true";
+
+            versionDisplay.addEventListener('click', () => {
+                linkSelectionModal.classList.remove('hidden');
+            });
+
+            btnOpenVersions.addEventListener('click', () => {
+                linkSelectionModal.classList.add('hidden');
+                aboutSystemModalTitle.textContent = "Versões do Sistema";
+                aboutSystemIframe.src = VERSIONS_URL;
+                aboutSystemModal.classList.remove('hidden');
+            });
+
+            btnOpenAbout.addEventListener('click', () => {
+                linkSelectionModal.classList.add('hidden');
+                aboutSystemModalTitle.textContent = "Sobre o Sistema";
+                aboutSystemIframe.src = ABOUT_URL;
+                aboutSystemModal.classList.remove('hidden');
+            });
+            
+            let tiposLoaded = false;
+            let empresasLoaded = false;
+            let contasLoaded = false;
+            let pessoasLoaded = false; // Adicionado para controle
+
+            const screens = { 
+                main: document.getElementById('main-screen'), 
+                entries: document.getElementById('entries-screen'), 
+                saidas: document.getElementById('saidas-screen'), 
+                pagamentos: document.getElementById('pagamentos-screen'), 
+                extrato: document.getElementById('extrato-screen'),
+                cadastrosNav: document.getElementById('cadastros-nav-screen'), 
+                tipos: document.getElementById('tipos-screen'), 
+                empresas: document.getElementById('empresas-screen'), 
+                contas: document.getElementById('contas-screen'), 
+                pessoas: document.getElementById('pessoas-screen'),
+                caixinhas: document.getElementById('caixinhas-screen')
+            };
+            const showScreen = (screenName) => { Object.values(screens).forEach(s => s.classList.add('hidden')); screens[screenName].classList.remove('hidden'); };
+
+            document.body.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (!link) return;
+
+                const isNavLink = link.classList.contains('nav-link');
+                const isBackToCadastros = link.classList.contains('btn-back-to-cadastros-nav');
+
+                if (isNavLink) {
+                    e.preventDefault();
+                    const targetScreen = link.dataset.target;
+                    
+                    const actions = {
+                        'entries': () => showScreen('entries'),
+                        'saidas': () => {
+                            showScreen('saidas');
+                            resetSaidaForm();
+                            renderSaidasList([]); 
+                        },
+                        'pagamentos': () => {
+                            showScreen('pagamentos');
+                            pagamentosSearchInput.value = '';
+                            pagamentosMonthFilter.value = '';
+                            pagamentosFilterCaixinha.checked = false; 
+                            checkAllCadastrosLoadedAndRenderPagamentos(); 
+                        },
+                        'cadastrosNav': () => showScreen('cadastrosNav'),
+                        'extrato': () => showScreen('extrato'),
+                        'tipos': () => showScreen('tipos'),
+                        'empresas': () => showScreen('empresas'),
+                        'contas': () => showScreen('contas'),
+                        'pessoas': () => showScreen('pessoas'),
+                        'caixinhas': () => showScreen('caixinhas'),
+                        'main': () => showScreen('main')
+                    };
+                    
+                    if (actions[targetScreen]) {
+                        actions[targetScreen]();
+                    }
+                } else if (isBackToCadastros) {
+                    e.preventDefault();
+                    showScreen('cadastrosNav');
+                }
+            });
+            
+            const formatCurrencyBRL = (value) => parseFloat(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const formatDateTime = (dateString) => {
+                if (!dateString) return 'N/A';
+                return new Date(dateString).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            }
+            const formatDateOnly = (dateString) => {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+                return new Date(date.getTime() + userTimezoneOffset).toLocaleDateString('pt-BR');
+            };
+            const parseCurrency = (value) => {
+                if (!value) return 0;
+                return parseFloat(value.replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+            };
+            const calculateTenure = (entryDate) => {
+                if (!entryDate) return 'N/A';
+                const start = new Date(entryDate);
+                const now = new Date();
+                let years = now.getFullYear() - start.getFullYear();
+                let months = now.getMonth() - start.getMonth();
+                if (months < 0 || (months === 0 && now.getDate() < start.getDate())) {
+                    years--;
+                    months += 12;
+                }
+                return `${years}a, ${months}m`;
+            };
+
+            const entryForm = document.getElementById('entry-form');
+            const entryValueInput = document.getElementById('entry-valor');
+            const entryDateInput = document.getElementById('entry-data');
+            const entriesListEl = document.getElementById('entries-list');
+            let allDbEntries = [];
+            let entriesCurrentPage = 1;
+            const entriesItemsPerPage = 10;
+
+            entryValueInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value === '') { e.target.value = ''; return; }
+                value = (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                e.target.value = value;
+            });
+            
+            const setCurrentDateTime = () => {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                entryDateInput.value = now.toISOString().slice(0, 16);
+            };
+            setCurrentDateTime();
+
+            const renderDbEntries = () => {
+                entriesListEl.innerHTML = '';
+                if (allDbEntries.length === 0) {
+                    entriesListEl.innerHTML = `<div id="no-entries-message" class="text-center py-10 text-gray-500"><p>Nenhuma entrada registrada ainda.</p></div>`;
+                    document.getElementById('pagination-controls').classList.add('hidden');
+                    return;
+                }
+                
+                document.getElementById('pagination-controls').classList.remove('hidden');
+
+                const startIndex = (entriesCurrentPage - 1) * entriesItemsPerPage;
+                const endIndex = startIndex + entriesItemsPerPage;
+                const paginatedEntries = allDbEntries.slice(startIndex, endIndex);
+
+                paginatedEntries.forEach(entry => {
+                    const entryElement = document.createElement('div');
+                    entryElement.className = 'p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-200';
+                    entryElement.innerHTML = `
+                        <div class="grid grid-cols-10 items-center gap-4">
+                            <div class="col-span-10 md:col-span-4 text-sm text-gray-800"><span class="font-bold md:hidden">Data: </span>${formatDateTime(entry.data)}</div>
+                            <div class="col-span-5 md:col-span-3 text-sm text-gray-600"><span class="font-bold md:hidden">Tipo: </span>${entry.tipo}</div>
+                            <div class="col-span-5 md:col-span-2 text-sm font-semibold text-green-600"><span class="font-bold text-gray-600 md:hidden">Valor: </span>${formatCurrencyBRL(entry.valor)}</div>
+                            <div class="col-span-10 md:col-span-1 flex justify-end items-center">
+                                <button data-id="${entry.id}" class="delete-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition">Excluir</button>
+                            </div>
+                        </div>
+                        ${entry.observacao ? `<div class="mt-2 text-sm text-gray-600 pl-1"><span class="font-semibold">Obs:</span> ${entry.observacao}</div>` : ''}
+                    `;
+                    entriesListEl.appendChild(entryElement);
+                });
+                
+                const pageInfo = document.getElementById('page-info');
+                const prevPageBtn = document.getElementById('prev-page');
+                const nextPageBtn = document.getElementById('next-page');
+                const totalPages = Math.ceil(allDbEntries.length / entriesItemsPerPage);
+
+                pageInfo.textContent = `Página ${entriesCurrentPage} de ${totalPages || 1}`;
+                prevPageBtn.disabled = entriesCurrentPage === 1;
+                nextPageBtn.disabled = entriesCurrentPage === totalPages || totalPages === 0;
+            };
+
+            document.getElementById('prev-page').addEventListener('click', () => { if (entriesCurrentPage > 1) { entriesCurrentPage--; renderDbEntries(); } });
+            document.getElementById('next-page').addEventListener('click', () => { const totalPages = Math.ceil(allDbEntries.length / entriesItemsPerPage); if (entriesCurrentPage < totalPages) { entriesCurrentPage++; renderDbEntries(); } });
+
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'entradas'), (snapshot) => {
+                allDbEntries = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                allDbEntries.sort((a,b) => new Date(b.data) - new Date(a.data)); 
+                renderDbEntries();
+                generateStatementData(); 
+            });
+
+            entryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newEntry = {
+                    tipo: entryForm.tipo.value,
+                    data: entryForm.data.value,
+                    valor: parseCurrency(entryValueInput.value),
+                    observacao: entryForm.observacao.value
+                };
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'entradas'), newEntry);
+                } catch (error) {
+                    modal.show(`Erro ao adicionar entrada. Detalhes: ${error.message}`, false);
+                }
+                entryForm.reset();
+                setCurrentDateTime();
+            });
+
+            entriesListEl.addEventListener('click', async (e) => {
+                const deleteButton = e.target.closest('.delete-btn');
+                if (deleteButton) {
+                    const docId = deleteButton.dataset.id;
+                    const confirmed = await modal.show('Tem certeza que deseja excluir esta entrada?');
+                    if (confirmed) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'entradas', docId));
+                        } catch (error) {
+                            modal.show(`Erro ao excluir entrada. Detalhes: ${error.message}`, false);
+                        }
+                    }
+                }
+            });
+
+            const saidaForm = document.getElementById('saida-form');
+            const saidaValorInput = document.getElementById('saida-valor');
+            const parceladoCheck = document.getElementById('saida-parcelado-check');
+            const parcelamentoFields = document.getElementById('parcelamento-fields');
+            const saidaVencimentoInput = document.getElementById('saida-vencimento');
+            const saidaVencimentoLabel = document.getElementById('saida-vencimento-label');
+            const saidaContaSearchInput = document.getElementById('saida-conta-search');
+            const saidaContaResultsEl = document.getElementById('saida-conta-results');
+            const saidaContaSelectedIdInput = document.getElementById('saida-conta-selected-id');
+            let allSaidas = [];
+            
+            const getContaLabel = (conta) => {
+                if (!conta) return '';
+                const empresa = cadastroManager.state.empresas.all.find(e => String(e.id) === String(conta.empresaId)) || {};
+                const tipo = cadastroManager.state.tipos.all.find(t => String(t.id) === String(empresa.tipoId)) || {};
+                return `${conta.nome} (${empresa.nome || 'N/A'} - ${tipo.nome || 'N/A'})`;
+            };
+
+            const resetSaidaForm = () => {
+                saidaForm.reset();
+                parcelamentoFields.classList.add('hidden');
+                saidaVencimentoLabel.textContent = 'Vencimento';
+                const today = new Date().toISOString().split('T')[0];
+                saidaVencimentoInput.value = today;
+                saidaContaSearchInput.value = '';
+                saidaContaSelectedIdInput.value = '';
+            };
+
+            saidaValorInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value === '') { e.target.value = ''; return; }
+                value = (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                e.target.value = value;
+            });
+
+            parceladoCheck.addEventListener('change', (e) => {
+                parcelamentoFields.classList.toggle('hidden', !e.target.checked);
+                saidaVencimentoLabel.textContent = e.target.checked ? 'Vencimento da 1ª Parcela' : 'Vencimento';
+            });
+
+            const renderContaResults = (searchTerm = '') => {
+                const lowerCaseSearchTerm = searchTerm.toLowerCase();
+                const filteredContas = cadastroManager.state.contas.all.filter(conta => 
+                    getContaLabel(conta).toLowerCase().includes(lowerCaseSearchTerm)
+                );
+
+                saidaContaResultsEl.innerHTML = '';
+                if (filteredContas.length > 0) {
+                    filteredContas.forEach(conta => {
+                        const item = document.createElement('div');
+                        item.className = 'p-2 hover:bg-gray-100 cursor-pointer';
+                        item.textContent = getContaLabel(conta);
+                        item.dataset.id = conta.id;
+                        item.addEventListener('click', () => {
+                            saidaContaSearchInput.value = getContaLabel(conta);
+                            saidaContaSelectedIdInput.value = conta.id;
+                            saidaContaResultsEl.classList.add('hidden');
+                        });
+                        saidaContaResultsEl.appendChild(item);
+                    });
+                    saidaContaResultsEl.classList.remove('hidden');
+                } else {
+                    saidaContaResultsEl.classList.add('hidden');
+                }
+            };
+
+            saidaContaSearchInput.addEventListener('input', () => {
+                saidaContaSelectedIdInput.value = ''; // Limpar ID se o usuário digitar de novo
+                renderContaResults(saidaContaSearchInput.value);
+            });
+
+            saidaContaSearchInput.addEventListener('click', () => {
+                 renderContaResults(saidaContaSearchInput.value);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!saidaContaSearchInput.contains(e.target) && !saidaContaResultsEl.contains(e.target)) {
+                    saidaContaResultsEl.classList.add('hidden');
+                }
+            });
+
+            saidaForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const contaId = saidaContaSelectedIdInput.value;
+                if (!contaId) {
+                    modal.show("Por favor, selecione uma conta válida da lista.", false);
+                    return;
+                }
+
+                const totalValue = parseCurrency(saidaForm['saida-valor'].value);
+                const isParcelado = saidaForm['saida-parcelado-check'].checked;
+                const qtdParcelas = parseInt(saidaForm['saida-qtd-parcelas'].value, 10);
+                const descricao = saidaForm['saida-descricao'].value.trim();
+
+                const baseSaida = {
+                    contaId: contaId,
+                    pessoaId: saidaForm['saida-pessoa-select'].value,
+                    descricao: descricao,
+                    dataLancamento: new Date().toISOString()
+                };
+
+                const batch = writeBatch(db);
+                const saidasCollection = collection(db, 'artifacts', appId, 'public', 'data', 'saidas');
+                const newSaidas = []; 
+
+                try {
+                    const vencimentoBase = new Date(saidaVencimentoInput.value + 'T12:00:00');
+
+                    if (isParcelado && qtdParcelas > 1) {
+                        const valorParcela = totalValue / qtdParcelas;
+                        
+                        for (let i = 0; i < qtdParcelas; i++) {
+                            const vencimentoParcela = new Date(vencimentoBase);
+                            vencimentoParcela.setMonth(vencimentoBase.getMonth() + i);
+
+                            const newSaidaData = {
+                                ...baseSaida,
+                                valor: valorParcela,
+                                vencimento: vencimentoParcela.toISOString().split('T')[0],
+                                parcelaInfo: `${i + 1}/${qtdParcelas}`
+                            };
+                            const newSaidaDocRef = doc(saidasCollection);
+                            batch.set(newSaidaDocRef, newSaidaData);
+                            newSaidas.push({ id: newSaidaDocRef.id, ...newSaidaData }); 
+                        }
+                    } else {
+                        const newSaidaData = {
+                            ...baseSaida,
+                            valor: totalValue,
+                            vencimento: vencimentoBase.toISOString().split('T')[0],
+                            parcelaInfo: '1/1'
+                        };
+                        const newSaidaDocRef = doc(saidasCollection);
+                        batch.set(newSaidaDocRef, newSaidaData);
+                        newSaidas.push({ id: newSaidaDocRef.id, ...newSaidaData }); 
+                    }
+
+                    await batch.commit();
+                    resetSaidaForm();
+                    renderSaidasList(newSaidas);
+                } catch (error) {
+                    modal.show(`Erro ao lançar saída(s). Detalhes: ${error.message}`, false);
+                }
+            });
+            
+            function renderSaidasList(saidasToRender) {
+                const listEl = document.getElementById('saidas-list-container');
+                const totalEl = document.getElementById('saidas-total');
+
+                listEl.innerHTML = '';
+                totalEl.textContent = formatCurrencyBRL(0); 
+
+                if (saidasToRender.length === 0) {
+                    listEl.innerHTML = `<p class="text-center py-10 text-gray-500">Nenhuma saída adicionada recentemente.</p>`;
+                    return;
+                }
+
+                const contasMap = Object.fromEntries(cadastroManager.state.contas.all.map(c => [c.id, c]));
+                const pessoasMap = Object.fromEntries(cadastroManager.state.pessoas.all.map(p => [p.id, p.nome]));
+               
+                const totalValue = saidasToRender.reduce((sum, saida) => sum + saida.valor, 0);
+                totalEl.textContent = formatCurrencyBRL(totalValue);
+
+                listEl.innerHTML = saidasToRender.map(saida => {
+                    const conta = contasMap[saida.contaId] || {};
+                    const pessoaNome = pessoasMap[saida.pessoaId] || 'Pessoa não encontrada';
+                    const descricaoHtml = saida.descricao ? `<p class="text-xs text-gray-500 mt-1 italic">"${saida.descricao}"</p>` : '';
+                    return `
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold">${getContaLabel(conta)}</p>
+                                <p class="text-sm text-gray-600">${pessoaNome}</p>
+                                ${descricaoHtml}
+                            </div>
+                            <div class="text-right flex-shrink-0 ml-4">
+                                <p class="font-semibold text-red-600">${formatCurrencyBRL(saida.valor)}</p>
+                                <p class="text-xs text-gray-500">${saida.parcelaInfo}</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-xs text-gray-500">Venc: ${formatDateOnly(saida.vencimento)}</span>
+                            <button data-id="${saida.id}" class="delete-btn text-red-500 hover:text-red-700 text-xs">Excluir</button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            }
+            
+            document.getElementById('saidas-list-container').addEventListener('click', async (e) => {
+                const deleteButton = e.target.closest('.delete-btn');
+                if (deleteButton) {
+                    const docId = deleteButton.dataset.id;
+                    const confirmed = await modal.show('Tem certeza que deseja excluir esta saída?');
+                    if (confirmed) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'saidas', docId));
+                        } catch (error) {
+                            modal.show(`Erro ao excluir saída. Detalhes: ${error.message}`, false);
+                        }
+                    }
+                }
+            });
+            
+            onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'saidas')), (snapshot) => {
+                allSaidas = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+                allSaidas.sort((a,b) => new Date(a.vencimento) - new Date(b.vencimento)); 
+                renderPagamentosList(); 
+                generateStatementData(); 
+                calculateAndRenderMonthlySummary();
+                renderHomePanels(); // Adicionado
+            });
+
+            // Lógica do painel de resumo mensal
+            const monthlySummaryScroller = document.getElementById('monthly-summary-scroller');
+            const scrollSummaryLeftBtn = document.getElementById('scroll-summary-left');
+            const scrollSummaryRightBtn = document.getElementById('scroll-summary-right');
+            const toggleSummaryPanelBtn = document.getElementById('toggle-summary-panel');
+            const monthlySummaryContent = document.getElementById('monthly-summary-content');
+            const toggleSummaryIcon = document.getElementById('toggle-summary-icon');
+
+            scrollSummaryLeftBtn.addEventListener('click', () => {
+                monthlySummaryScroller.scrollBy({ left: -300, behavior: 'smooth' });
+            });
+
+            scrollSummaryRightBtn.addEventListener('click', () => {
+                monthlySummaryScroller.scrollBy({ left: 300, behavior: 'smooth' });
+            });
+
+            toggleSummaryPanelBtn.addEventListener('click', () => {
+                monthlySummaryContent.classList.toggle('hidden');
+                toggleSummaryIcon.classList.toggle('rotate-180');
+            });
+
+            const calculateAndRenderMonthlySummary = () => {
+                const monthlyData = {};
+                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+                allSaidas.forEach(saida => {
+                    const vencimento = new Date(saida.vencimento + 'T12:00:00');
+                    const year = vencimento.getFullYear();
+                    const month = vencimento.getMonth();
+                    const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+                    if (!monthlyData[key]) {
+                        monthlyData[key] = {
+                            total: 0,
+                            pago: 0,
+                            mes: monthNames[month],
+                            ano: year,
+                        };
+                    }
+
+                    monthlyData[key].total += saida.valor;
+                    if (saida.dataPagamento) {
+                        monthlyData[key].pago += saida.valorPago || saida.valor;
+                    }
+                });
+
+                const sortedKeys = Object.keys(monthlyData).sort();
+                monthlySummaryScroller.innerHTML = '';
+
+                if (sortedKeys.length === 0) {
+                    monthlySummaryScroller.innerHTML = `<p class="text-gray-500 text-sm p-4">Nenhuma conta encontrada.</p>`;
+                    return;
+                }
+
+                const now = new Date();
+                const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+                sortedKeys.forEach(key => {
+                    const data = monthlyData[key];
+                    const falta = data.total - data.pago;
+                    const isCurrentMonth = key === currentMonthKey;
+
+                    const card = document.createElement('div');
+                    card.className = `flex-shrink-0 w-64 p-4 rounded-lg border ${isCurrentMonth ? 'bg-teal-50 border-teal-500' : 'bg-white'}`;
+                    card.innerHTML = `
+                        <h4 class="font-bold text-gray-800">${data.mes} ${data.ano}</h4>
+                        <div class="mt-2 space-y-1 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Total:</span>
+                                <span class="font-semibold text-gray-800">${formatCurrencyBRL(data.total)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Pago:</span>
+                                <span class="font-semibold text-green-600">${formatCurrencyBRL(data.pago)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Falta:</span>
+                                <span class="font-semibold text-red-600">${formatCurrencyBRL(falta)}</span>
+                            </div>
+                        </div>
+                    `;
+                    monthlySummaryScroller.appendChild(card);
+                });
+            };
+
+            // Lógica do painel "Vencendo Hoje" e "Vencidas"
+            const homeClassicView = document.getElementById('home-classic-view');
+            const homeDashboardView = document.getElementById('home-dashboard-view');
+            const overduePanel = document.getElementById('overdue-panel');
+            const dueTodayPanel = document.getElementById('due-today-panel');
+
+            const renderHomePanels = () => {
+                if (!checkAllCadastrosLoaded()) {
+                    homeClassicView.classList.remove('hidden');
+                    homeDashboardView.classList.add('hidden');
+                    return;
+                }
+                const todayStr = new Date().toISOString().split('T')[0];
+                const today = new Date(todayStr + 'T12:00:00');
+
+                const overdue = allSaidas.filter(saida => new Date(saida.vencimento + 'T12:00:00') < today && !saida.dataPagamento);
+                const dueToday = allSaidas.filter(saida => saida.vencimento === todayStr && !saida.dataPagamento);
+
+                const contasMap = new Map(cadastroManager.state.contas.all.map(c => [String(c.id), c]));
+                
+                const createPanel = (title, accounts, panelEl, bgColor, btnText, btnId, btnAction) => {
+                    panelEl.innerHTML = '';
+                    if (accounts.length > 0) {
+                        const total = accounts.reduce((sum, a) => sum + a.valor, 0);
+                        let listHtml = accounts.map(saida => {
+                            let description;
+                            if (saida.isCaixinhaInstallment) {
+                                const caixinha = caixinhas.find(c => c.id === saida.caixinhaId);
+                                description = `Caixinha: ${caixinha ? caixinha.name : 'N/A'}`;
+                            } else {
+                                const conta = contasMap.get(String(saida.contaId));
+                                description = conta ? getContaLabel(conta) : 'Conta não encontrada';
+                            }
+                            return `<li class="flex justify-between text-sm"><span>${description}</span><span class="font-semibold">${formatCurrencyBRL(saida.valor)}</span></li>`;
+                        }).join('');
+
+                        panelEl.innerHTML = `
+                            <div class="bg-white p-6 rounded-xl shadow-md h-full flex flex-col ${bgColor}">
+                                <h3 class="text-xl font-bold text-gray-800 mb-2">${title}</h3>
+                                <p class="text-sm text-gray-600 mb-4">
+                                    Há <strong>${accounts.length}</strong> conta(s) nesta situação. Total de <strong>${formatCurrencyBRL(total)}</strong>.
+                                </p>
+                                <div class="flex-grow border-t border-b py-4 my-4 overflow-y-auto">
+                                    <ul class="space-y-2">${listHtml}</ul>
+                                </div>
+                                <button id="${btnId}" class="w-full bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 transition-colors">
+                                    ${btnText}
+                                </button>
+                            </div>
+                        `;
+                        document.getElementById(btnId).addEventListener('click', btnAction);
+                        panelEl.classList.remove('hidden');
+                        return true;
+                    }
+                    panelEl.classList.add('hidden');
+                    return false;
+                };
+
+                const hasOverdue = createPanel('Contas Vencidas', overdue, overduePanel, 'bg-red-50 border border-red-200', 'Pagar Vencidas', 'btn-go-to-pagar-vencidas', () => {
+                    showScreen('pagamentos');
+                    pagamentosMonthFilter.value = ''; // Limpa o filtro de mês para mostrar todas as vencidas
+                    // Futuramente, podemos adicionar um filtro específico para "vencidas"
+                    renderPagamentosList();
+                });
+
+                const hasDueToday = createPanel('Vencendo Hoje', dueToday, dueTodayPanel, 'bg-yellow-50 border border-yellow-200', 'Ir para Pagamentos', 'btn-go-to-pagar-hoje', () => {
+                    showScreen('pagamentos');
+                    pagamentosMonthFilter.value = todayStr.substring(0, 7);
+                    renderPagamentosList();
+                });
+
+                if (hasOverdue || hasDueToday) {
+                    homeClassicView.classList.add('hidden');
+                    homeDashboardView.classList.remove('hidden');
+                } else {
+                    homeClassicView.classList.remove('hidden');
+                    homeDashboardView.classList.add('hidden');
+                }
+            };
+
+
+            const pagamentosSearchInput = document.getElementById('pagamentos-search');
+            const pagamentosMonthFilter = document.getElementById('pagamentos-month-filter');
+            const pagamentosFilterCaixinha = document.getElementById('pagamentos-filter-caixinha'); 
+            const pagamentosListContainer = document.getElementById('pagamentos-list-container');
+            const totalSelecionadoEl = document.getElementById('pagamentos-total-selecionado');
+            const btnPagarSelecionados = document.getElementById('btn-pagar-selecionados');
+            let selectedToPay = new Map();
+            let pagamentosCurrentPage = 1;
+            const PAGAMENTOS_ITEMS_PER_PAGE = 40;
+
+            // NOVO: Lógica do modal de edição de saída
+            const editSaidaModal = document.getElementById('editSaidaModal');
+            const editSaidaValorInput = document.getElementById('editSaidaValor');
+            const submitEditSaidaBtn = document.getElementById('submitEditSaidaBtn');
+            const cancelEditSaidaBtn = document.getElementById('cancelEditSaidaBtn');
+            let currentEditingSaidaId = null;
+
+            editSaidaValorInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value === '') { e.target.value = ''; return; }
+                value = (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                e.target.value = value;
+            });
+
+            cancelEditSaidaBtn.addEventListener('click', () => {
+                editSaidaModal.classList.remove('show');
+                currentEditingSaidaId = null;
+            });
+
+            submitEditSaidaBtn.addEventListener('click', async () => {
+                const novoValor = parseCurrency(editSaidaValorInput.value);
+                if (isNaN(novoValor) || novoValor < 0) {
+                    modal.show("Por favor, insira um valor válido.", false);
+                    return;
+                }
+
+                if (currentEditingSaidaId) {
+                    const saidaRef = doc(db, 'artifacts', appId, 'public', 'data', 'saidas', currentEditingSaidaId);
+                    try {
+                        await updateDoc(saidaRef, { valor: novoValor });
+                        modal.show("Valor da conta atualizado com sucesso!", false);
+                        editSaidaModal.classList.remove('show');
+                        currentEditingSaidaId = null;
+                    } catch (error) {
+                        modal.show(`Erro ao atualizar o valor. Detalhes: ${error.message}`, false);
+                    }
+                }
+            });
+
+
+            const checkAllCadastrosLoaded = () => {
+                return tiposLoaded && empresasLoaded && contasLoaded && pessoasLoaded;
+            };
+
+            const checkAllCadastrosLoadedAndRenderPagamentos = () => {
+                if (checkAllCadastrosLoaded()) {
+                    renderPagamentosList();
+                } else {
+                    pagamentosListContainer.innerHTML = `<p class="text-center py-10 text-gray-500">Carregando dados de cadastro...</p>`;
+                }
+            };
+
+            const renderPagamentosList = () => {
+                if (!checkAllCadastrosLoaded()) {
+                    pagamentosListContainer.innerHTML = `<p class="text-center py-10 text-gray-500">Carregando dados de cadastro...</p>`;
+                    return;
+                }
+                
+                // CORREÇÃO: Sincronizar o mapa de seleção com os dados mais recentes
+                const newSelectedToPay = new Map();
+                for (const [id, oldValor] of selectedToPay.entries()) {
+                    const updatedSaida = allSaidas.find(s => s.id === id);
+                    if (updatedSaida) {
+                        newSelectedToPay.set(id, updatedSaida.valor);
+                    }
+                }
+                selectedToPay = newSelectedToPay;
+                updatePagamentoTotal();
+
+                const searchTerm = pagamentosSearchInput.value.toLowerCase();
+                const monthFilter = pagamentosMonthFilter.value;
+                const filterCaixinha = pagamentosFilterCaixinha.checked; 
+
+                const contasMap = new Map(cadastroManager.state.contas.all.map(c => [String(c.id), c]));
+                const pessoasMap = new Map(cadastroManager.state.pessoas.all.map(p => [String(p.id), p.nome]));
+                
+                const filteredSaidas = allSaidas.filter(saida => {
+                    if (saida.dataPagamento) return false;
+
+                    const isCaixinha = saida.isCaixinhaInstallment;
+                    let descriptionToSearch = '';
+                    if (isCaixinha) {
+                        const caixinha = caixinhas.find(c => c.id === saida.caixinhaId);
+                        descriptionToSearch = `Caixinha: ${caixinha ? caixinha.name : 'N/A'} - Parcela ${saida.parcelaInfo}`;
+                    } else {
+                        const conta = contasMap.get(String(saida.contaId));
+                        const baseDescription = conta ? getContaLabel(conta) : '';
+                        const extraDescription = saida.descricao || '';
+                        descriptionToSearch = `${baseDescription} ${extraDescription}`;
+                    }
+
+                    const searchMatch = descriptionToSearch.toLowerCase().includes(searchTerm);
+                    const monthMatch = !monthFilter || saida.vencimento.startsWith(monthFilter);
+                    const caixinhaFilterMatch = !filterCaixinha || isCaixinha; 
+                    return searchMatch && monthMatch && caixinhaFilterMatch; 
+                });
+
+                const paginationEl = document.getElementById('pagamentos-pagination');
+                if (filteredSaidas.length === 0) {
+                    pagamentosListContainer.innerHTML = `<p class="text-center py-10 text-gray-500">Nenhuma conta encontrada.</p>`;
+                    paginationEl.classList.add('hidden');
+                    return;
+                }
+
+                paginationEl.classList.remove('hidden');
+                const totalPages = Math.ceil(filteredSaidas.length / PAGAMENTOS_ITEMS_PER_PAGE);
+                pagamentosCurrentPage = Math.min(pagamentosCurrentPage, totalPages || 1);
+                
+                const startIndex = (pagamentosCurrentPage - 1) * PAGAMENTOS_ITEMS_PER_PAGE;
+                const paginatedItems = filteredSaidas.slice(startIndex, startIndex + PAGAMENTOS_ITEMS_PER_PAGE);
+
+                pagamentosListContainer.innerHTML = paginatedItems.map(saida => {
+                    const itemNumber = allSaidas.findIndex(s => s.id === saida.id) + 1;
+                    const isCaixinha = saida.isCaixinhaInstallment;
+                    let displayLabel;
+                    let displaySubtext = '';
+
+                    if (isCaixinha) {
+                        const caixinha = caixinhas.find(c => c.id === saida.caixinhaId);
+                        displayLabel = `<span class="font-bold text-emerald-700">Caixinha: ${caixinha ? caixinha.name : 'Caixinha Removida'}</span>`;
+                        displaySubtext = `Parcela ${saida.parcelaInfo}`;
+                    } else {
+                        const conta = contasMap.get(String(saida.contaId)) || {};
+                        const pessoaNome = pessoasMap.get(String(saida.pessoaId)) || 'Pessoa não encontrada';
+                        displayLabel = getContaLabel(conta);
+                        displaySubtext = pessoaNome;
+                        if (saida.descricao) {
+                            displaySubtext += `<br><span class="text-xs italic text-gray-500">"${saida.descricao}"</span>`;
+                        }
+                    }
+
+                    const isPaid = !!saida.dataPagamento; 
+                    const isSelected = selectedToPay.has(saida.id);
+
+                    return `
+                    <div class="p-3 rounded-lg flex items-center ${isPaid ? 'bg-green-100 text-gray-500' : 'bg-gray-50'}">
+                        <div class="flex-shrink-0 mr-2 flex items-center">
+                            <span class="text-sm font-bold text-gray-400 w-8 text-center">${itemNumber}.</span>
+                            ${!isPaid ? `<input type="checkbox" class="pagamento-checkbox h-5 w-5 text-teal-600 border-gray-300 rounded" data-id="${saida.id}" data-valor="${saida.valor}" ${isSelected ? 'checked' : ''}>` : 
+                            `<div class="h-5 w-5 flex items-center justify-center bg-green-500 rounded-full text-white"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>`}
+                        </div>
+                        <div class="flex-grow">
+                            <p class="font-semibold ${isPaid ? 'line-through' : ''}">${displayLabel}</p>
+                            <div class="text-sm ${isPaid ? 'line-through' : 'text-gray-600'}">${displaySubtext}</div>
+                        </div>
+                        <div class="text-right ml-4 flex items-center space-x-2">
+                            <p class="font-semibold ${isPaid ? 'line-through text-green-700' : 'text-red-600'}">${formatCurrencyBRL(saida.valor)}</p>
+                            <p class="text-xs text-gray-500">${saida.parcelaInfo}</p>
+                            ${isPaid ? `<p class="text-xs text-green-600 font-semibold">Pago em: ${formatDateTime(saida.dataPagamento)}</p>` : `<p class="text-xs text-gray-500">Venc: ${formatDateOnly(saida.vencimento)}</p>`}
+                            ${!isPaid ? `
+                                <button data-id="${saida.id}" class="edit-pagamento-btn text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-100 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536l12.232-12.232z"></path></svg>
+                                </button>
+                                <button data-id="${saida.id}" class="delete-pagamento-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+                document.getElementById('pagamentos-page-info').textContent = `Página ${pagamentosCurrentPage} de ${totalPages}`;
+                document.getElementById('pagamentos-prev-page').disabled = pagamentosCurrentPage === 1;
+                document.getElementById('pagamentos-next-page').disabled = pagamentosCurrentPage === totalPages;
+            };
+
+
+// CÓDIGO CORRETO
+
+// 1. Botão "Anterior"
+document.getElementById('pagamentos-prev-page').addEventListener('click', () => {
+    // A condição if começa aqui com {
+    if (pagamentosCurrentPage > 1) { 
+        pagamentosCurrentPage--; 
+        renderPagamentosList(); 
+        // A linha de rolagem deve vir AQUI DENTRO
+        document.getElementById('pagamentos-list-container').scrollIntoView({ behavior: 'smooth' });
+    } 
+    // A condição if termina aqui com }
+});
+
+
+// 2. Botão "Próxima"
+document.getElementById('pagamentos-next-page').addEventListener('click', () => {
+    const totalPages = Math.ceil(allSaidas.filter(s => !s.dataPagamento).length / PAGAMENTOS_ITEMS_PER_PAGE);
+    // A condição if começa aqui com {
+    if (pagamentosCurrentPage < totalPages) { 
+        pagamentosCurrentPage++; 
+        renderPagamentosList(); 
+        // A linha de rolagem deve vir AQUI DENTRO também
+        document.getElementById('pagamentos-list-container').scrollIntoView({ behavior: 'smooth' });
+    }
+    // A condição if termina aqui com }
+});
+
+
+
+            
+/*
+            document.getElementById('pagamentos-prev-page').addEventListener('click', () => { if (pagamentosCurrentPage > 1) { pagamentosCurrentPage--; renderPagamentosList(); } });
+            document.getElementById('pagamentos-list-container').scrollIntoView({ behavior: 'smooth' });
+            
+            //bloco próxima página
+
+            document.getElementById('pagamentos-next-page').addEventListener('click', () => {
+                const totalPages = Math.ceil(allSaidas.filter(s => !s.dataPagamento).length / PAGAMENTOS_ITEMS_PER_PAGE); // Recalcula total de páginas
+                if (pagamentosCurrentPage < totalPages) { pagamentosCurrentPage++; renderPagamentosList(); }
+            document.getElementById('pagamentos-list-container').scrollIntoView({ behavior: 'smooth' });
+            }); */
+
+            const updatePagamentoTotal = () => {
+                const total = Array.from(selectedToPay.values()).reduce((sum, valor) => sum + valor, 0);
+                totalSelecionadoEl.textContent = formatCurrencyBRL(total);
+                btnPagarSelecionados.disabled = selectedToPay.size === 0;
+            };
+
+            pagamentosListContainer.addEventListener('change', (e) => {
+                if (e.target.classList.contains('pagamento-checkbox')) {
+                    const id = e.target.dataset.id;
+                    const valor = parseFloat(e.target.dataset.valor);
+                    if (e.target.checked) {
+                        selectedToPay.set(id, valor);
+                    } else {
+                        selectedToPay.delete(id);
+                    }
+                    updatePagamentoTotal();
+                }
+            });
+            
+            pagamentosListContainer.addEventListener('click', async (e) => {
+                const deleteButton = e.target.closest('.delete-pagamento-btn');
+                const editButton = e.target.closest('.edit-pagamento-btn');
+
+                if (deleteButton) {
+                    const docId = deleteButton.dataset.id;
+                    const confirmed = await modal.show('Tem certeza que deseja excluir esta conta?');
+                    if (confirmed) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'saidas', docId));
+                            selectedToPay.delete(docId);
+                            updatePagamentoTotal();
+                        } catch (error) {
+                            modal.show(`Erro ao excluir conta. Detalhes: ${error.message}`, false);
+                        }
+                    }
+                } else if (editButton) {
+                    const docId = editButton.dataset.id;
+                    const saidaParaEditar = allSaidas.find(s => s.id === docId);
+                    if (saidaParaEditar) {
+                        currentEditingSaidaId = docId;
+                        editSaidaValorInput.value = formatCurrencyBRL(saidaParaEditar.valor);
+                        editSaidaModal.classList.add('show');
+                    }
+                }
+            });
+
+            btnPagarSelecionados.addEventListener('click', async () => {
+                if(selectedToPay.size === 0) return;
+                
+                const confirmed = await modal.show(`Confirmar pagamento de ${selectedToPay.size} conta(s) totalizando ${totalSelecionadoEl.textContent}?`);
+                if(confirmed) {
+                    const batch = writeBatch(db);
+                    const dataPagamento = new Date().toISOString();
+                    
+                    for (const [id, valor] of selectedToPay.entries()) {
+                        const saidaRef = doc(db, 'artifacts', appId, 'public', 'data', 'saidas', id);
+                        const saidaDoc = allSaidas.find(s => s.id === id);
+                        
+                        // O valor pago é o valor atual da conta no momento do clique
+                        const valorPagoNoMomento = saidaDoc.valor;
+
+                        if (saidaDoc && saidaDoc.isCaixinhaInstallment) {
+                            batch.update(saidaRef, { dataPagamento: dataPagamento, valorPago: valorPagoNoMomento });
+                            const caixinhaRef = doc(db, 'artifacts', appId, 'public', 'data', 'caixinhas', saidaDoc.caixinhaId);
+                            await runTransaction(db, async (transaction) => {
+                                const caixinhaDoc = await transaction.get(caixinhaRef);
+                                if (!caixinhaDoc.exists()) throw "Documento da caixinha não existe!";
+                                const newCurrentSaved = (caixinhaDoc.data().currentSaved || 0) + valorPagoNoMomento;
+                                transaction.update(caixinhaRef, { currentSaved: newCurrentSaved });
+                            });
+                        } else {
+                             batch.update(saidaRef, { dataPagamento: dataPagamento, valorPago: valorPagoNoMomento });
+                        }
+                    }
+
+                    try {
+                        await batch.commit();
+                        modal.show("Pagamento(s) realizado(s) com sucesso.", false);
+                        selectedToPay.clear();
+                        updatePagamentoTotal();
+                    } catch (error) {
+                        modal.show(`Erro ao realizar pagamento(s). Detalhes: ${error.message}`, false);
+                    }
+                }
+            });
+
+            pagamentosSearchInput.addEventListener('input', () => { pagamentosCurrentPage = 1; renderPagamentosList(); });
+            pagamentosMonthFilter.addEventListener('input', () => { pagamentosCurrentPage = 1; renderPagamentosList(); });
+            pagamentosFilterCaixinha.addEventListener('change', () => { pagamentosCurrentPage = 1; renderPagamentosList(); });
+
+            let allStatementItems = [];
+            let currentFilteredExtratoItems = [];
+            let extratoCurrentPage = 1;
+            const EXTRATO_ITEMS_PER_PAGE = 10;
+            const extratoSearchInput = document.getElementById('extrato-search');
+            const extratoStartDateInput = document.getElementById('extrato-start-date');
+            const extratoEndDateInput = document.getElementById('extrato-end-date');
+            const btnGeneratePdf = document.getElementById('btn-generate-pdf');
+
+            const getContaLabelForStatement = (conta) => {
+                if (!conta) return 'Conta não encontrada';
+                const empresa = cadastroManager.state.empresas.all.find(e => String(e.id) === String(conta.empresaId)) || {};
+                const tipo = cadastroManager.state.tipos.all.find(t => String(t.id) === String(empresa.tipoId)) || {};
+                return `${conta.nome} (${empresa.nome || 'N/A'} - ${tipo.nome || 'N/A'})`;
+            };
+
+            const generateStatementData = () => {
+                if (!checkAllCadastrosLoaded()) {
+                    return;
+                }
+                const pessoasMap = new Map(cadastroManager.state.pessoas.all.map(p => [String(p.id), p.nome]));
+
+                const creditos = allDbEntries.map(entry => ({
+                    type: 'C',
+                    date: new Date(entry.data),
+                    description: entry.tipo,
+                    value: entry.valor
+                }));
+
+                const debitos = allSaidas
+                    .filter(saida => saida.dataPagamento)
+                    .map(saida => {
+                        let description;
+                        if (saida.isCaixinhaInstallment) {
+                            const caixinha = caixinhas.find(c => c.id === saida.caixinhaId);
+                            description = `Caixinha: ${caixinha ? caixinha.name : 'Caixinha Removida'} - Parcela ${saida.parcelaInfo}`;
+                        } else {
+                            const conta = cadastroManager.state.contas.all.find(c => String(c.id) === String(saida.contaId));
+                            const pessoaNome = pessoasMap.get(String(saida.pessoaId)) || 'N/A';
+                            description = `${getContaLabelForStatement(conta)} (${pessoaNome})`;
+                            if(saida.descricao) {
+                                description += ` - "${saida.descricao}"`;
+                            }
+                        }
+                        return {
+                            type: 'D',
+                            date: new Date(saida.dataPagamento),
+                            description: description,
+                            value: saida.valorPago || saida.valor // Usa o valor pago se existir
+                        };
+                    });
+                
+                const combined = [...creditos, ...debitos].sort((a, b) => a.date - b.date);
+
+                let currentBalance = 0;
+                const itemsWithBalance = combined.map(item => {
+                    currentBalance = item.type === 'C' ? currentBalance + item.value : currentBalance - item.value;
+                    return { ...item, balance: currentBalance };
+                });
+                
+                allStatementItems = itemsWithBalance.reverse();
+                
+                renderExtratoList();
+            };
+
+            const renderExtratoList = () => {
+                const listEl = document.getElementById('extrato-list');
+                const paginationEl = document.getElementById('extrato-pagination');
+                
+                const searchTerm = extratoSearchInput.value.toLowerCase();
+                const startDate = extratoStartDateInput.value ? new Date(extratoStartDateInput.value + 'T00:00:00') : null;
+                const endDate = extratoEndDateInput.value ? new Date(extratoEndDateInput.value + 'T23:59:59') : null;
+
+                currentFilteredExtratoItems = allStatementItems.filter(item => {
+                    const searchMatch = item.description.toLowerCase().includes(searchTerm);
+                    const dateMatch = (!startDate || item.date >= startDate) && (!endDate || item.date <= endDate);
+                    return searchMatch && dateMatch;
+                });
+
+                if (currentFilteredExtratoItems.length === 0) {
+                    listEl.innerHTML = `<p class="text-center py-10 text-gray-500">Nenhum lançamento encontrado para os filtros selecionados.</p>`;
+                    paginationEl.classList.add('hidden');
+                    return;
+                }
+
+                paginationEl.classList.remove('hidden');
+                const totalPages = Math.ceil(currentFilteredExtratoItems.length / EXTRATO_ITEMS_PER_PAGE);
+                extratoCurrentPage = Math.min(extratoCurrentPage, totalPages || 1);
+
+                const startIndex = (extratoCurrentPage - 1) * EXTRATO_ITEMS_PER_PAGE;
+                const paginatedItems = currentFilteredExtratoItems.slice(startIndex, startIndex + EXTRATO_ITEMS_PER_PAGE);
+
+                listEl.innerHTML = paginatedItems.map(item => {
+                    const isCredit = item.type === 'C';
+                    return `
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-3 rounded-lg ${isCredit ? 'bg-green-50' : 'bg-red-50'}">
+                        <div class="col-span-1 text-center font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}">${item.type}</div>
+                        <div class="col-span-11 md:col-span-4 text-sm text-gray-800"><span class="font-bold md:hidden">Desc: </span>${item.description}</div>
+                        <div class="col-span-6 md:col-span-2 text-sm font-semibold text-right ${isCredit ? 'text-green-600' : 'text-red-600'}"><span class="font-bold text-gray-600 md:hidden">Valor: </span>${formatCurrencyBRL(item.value)}</div>
+                        <div class="col-span-6 md:col-span-3 text-sm font-semibold text-right text-gray-700"><span class="font-bold text-gray-600 md:hidden">Saldo: </span>${formatCurrencyBRL(item.balance)}</div>
+                        <div class="col-span-12 md:col-span-2 text-sm text-gray-500 text-right"><span class="font-bold md:hidden">Data: </span>${formatDateTime(item.date)}</div>
+                    </div>
+                    `;
+                }).join('');
+
+                document.getElementById('extrato-page-info').textContent = `Página ${extratoCurrentPage} de ${totalPages}`;
+                document.getElementById('extrato-prev-page').disabled = extratoCurrentPage === 1;
+                document.getElementById('extrato-next-page').disabled = extratoCurrentPage === totalPages;
+            };
+
+            const generatePDF = () => {
+                if (typeof window.jspdf === 'undefined') {
+                    modal.show("Erro: Biblioteca de PDF (jsPDF) não carregada.", false);
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const startDate = extratoStartDateInput.value;
+                const endDate = extratoEndDateInput.value;
+                const periodo = startDate && endDate 
+                    ? `Período: ${formatDateOnly(startDate)} a ${formatDateOnly(endDate)}` 
+                    : 'Período: Todos os lançamentos';
+
+                doc.setFontSize(18);
+                doc.text("Extrato Financeiro", 105, 20, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text("Fazenda Aliança", 105, 28, { align: 'center' });
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text(periodo, 105, 34, { align: 'center' });
+
+                let y = 45;
+                doc.setLineWidth(0.2);
+                doc.line(14, y, 196, y);
+                y += 5;
+                doc.setFont("helvetica", "bold");
+                doc.text("Data", 16, y);
+                doc.text("Tipo", 50, y);
+                doc.text("Descrição", 70, y);
+                doc.text("Valor", 150, y, { align: "right" });
+                doc.text("Saldo", 194, y, { align: "right" });
+                y += 2;
+                doc.line(14, y, 196, y);
+                y += 5;
+
+                doc.setFont("helvetica", "normal");
+                
+                if (currentFilteredExtratoItems.length === 0) {
+                    doc.text("Nenhum lançamento encontrado para os filtros selecionados.", 14, y);
+                } else {
+                    currentFilteredExtratoItems.forEach(item => {
+                        if (y > 280) { 
+                            doc.addPage();
+                            y = 20; 
+                        }
+                        const isCredit = item.type === 'C';
+                        const valorStr = formatCurrencyBRL(item.value);
+                        const saldoStr = formatCurrencyBRL(item.balance);
+                        const dataStr = formatDateTime(item.date);
+                        const descLines = doc.splitTextToSize(item.description, 60);
+
+                        doc.setTextColor(isCredit ? '#16a34a' : '#dc2626'); 
+                        doc.text(valorStr, 150, y, { align: "right" });
+                        
+                        doc.setTextColor(0); 
+                        doc.text(dataStr, 16, y);
+                        doc.text(item.type, 50, y);
+                        doc.text(descLines, 70, y);
+                        doc.text(saldoStr, 194, y, { align: "right" });
+
+                        y += (descLines.length * 5) + 3; 
+                    });
+                }
+
+                doc.save(`extrato-financeiro-ffa-${new Date().toISOString().slice(0,10)}.pdf`);
+            };
+            
+            extratoSearchInput.addEventListener('input', () => { extratoCurrentPage = 1; renderExtratoList(); });
+            extratoStartDateInput.addEventListener('input', () => { extratoCurrentPage = 1; renderExtratoList(); });
+            extratoEndDateInput.addEventListener('input', () => { extratoCurrentPage = 1; renderExtratoList(); });
+            btnGeneratePdf.addEventListener('click', generatePDF);
+
+            document.getElementById('extrato-prev-page').addEventListener('click', () => { if (extratoCurrentPage > 1) { extratoCurrentPage--; renderExtratoList(); } });
+            document.getElementById('extrato-next-page').addEventListener('click', () => {
+                 const totalPages = Math.ceil(currentFilteredExtratoItems.length / EXTRATO_ITEMS_PER_PAGE);
+                 if (extratoCurrentPage < totalPages) { extratoCurrentPage++; renderExtratoList(); }
+            });
+
+            const cadastroManager = {
+                state: {},
+                ITEMS_PER_PAGE: 5,
+
+                init(config) {
+                    this.state[config.id] = { all: [], filtered: [], currentPage: 1, searchTerm: '' };
+                    this.buildScreen(config);
+                    this.listenToCollection(config);
+                    this.setupHandlers(config);
+                },
+                
+                buildScreen(config) {
+                    const screenEl = document.getElementById(`${config.id}-screen`);
+                    screenEl.innerHTML = `
+                        <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+                            <div class="mb-6"><a href="#" class="btn-back-to-cadastros-nav inline-flex items-center text-gray-300 hover:text-white transition-colors"><svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>Voltar</a></div>
+                            <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                                <div class="lg:col-span-2">
+                                    <div class="bg-white p-8 rounded-xl shadow-md">
+                                        <h2 class="text-2xl font-bold text-gray-800 mb-6">${config.formTitle}</h2>
+                                        <form id="${config.id}-form" class="space-y-6">
+                                            <input type="hidden" id="${config.id}-doc-id" name="docId">
+                                            ${config.formFields}
+                                            <div class="flex space-x-2">
+                                                <button type="submit" id="${config.id}-submit-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700">Salvar ${config.singularName}</button>
+                                                <button type="button" id="${config.id}-cancel-edit-btn" class="w-full bg-gray-400 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-500 hidden">Cancelar Edição</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-3">
+                                    <div class="bg-white p-8 rounded-xl shadow-md min-h-full flex flex-col">
+                                        <h2 class="text-2xl font-bold text-gray-800 mb-6">${config.listTitle}</h2>
+                                        <div class="mb-4"><input type="search" id="${config.id}-search" placeholder="Pesquisar por nome..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"></div>
+                                        <div id="${config.id}-list" class="flex-grow space-y-3"></div>
+                                        <div id="${config.id}-pagination" class="mt-6 flex justify-between items-center hidden">
+                                            <button id="${config.id}-prev" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Anterior</button>
+                                            <span id="${config.id}-page-info" class="text-sm text-gray-600"></span>
+                                            <button id="${config.id}-next" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Próxima</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                setupHandlers(config) {
+                    const form = document.getElementById(`${config.id}-form`);
+                    const searchInput = document.getElementById(`${config.id}-search`);
+                    const prevBtn = document.getElementById(`${config.id}-prev`);
+                    const nextBtn = document.getElementById(`${config.id}-next`);
+                    const docIdInput = document.getElementById(`${config.id}-doc-id`);
+                    const submitBtn = document.getElementById(`${config.id}-submit-btn`);
+                    const cancelEditBtn = document.getElementById(`${config.id}-cancel-edit-btn`);
+
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const data = config.getFormData(form);
+                        if (!data.nome || data.nome.trim() === '') {
+                            modal.show("O campo 'Nome' é obrigatório.", false);
+                            return;
+                        }
+                        
+                        const currentDocId = docIdInput.value;
+
+                        try {
+                            if (currentDocId) {
+                                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', config.collection, currentDocId), data);
+                                modal.show(`${config.singularName} atualizado(a) com sucesso!`, false);
+                            } else {
+                                if (this.state[config.id].all.some(item => item.nome.toLowerCase() === data.nome.toLowerCase())) {
+                                    modal.show(`O item "${data.nome}" já existe.`, false);
+                                    return;
+                                }
+                                const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', config.collection), data);
+                                if (config.onFormSubmitSuccess) {
+                                    config.onFormSubmitSuccess(docRef.id);
+                                }
+                            }
+                            this.cancelEdit(config.id); 
+                        } catch (error) {
+                            modal.show(`Erro ao salvar/atualizar ${config.singularName}. Detalhes: ${error.message}`, false);
+                        }
+                    });
+
+                    searchInput.addEventListener('input', (e) => {
+                        this.state[config.id].searchTerm = e.target.value;
+                        this.state[config.id].currentPage = 1;
+                        this.updateList(config);
+                    });
+
+                    prevBtn.addEventListener('click', () => {
+                        if (this.state[config.id].currentPage > 1) {
+                            this.state[config.id].currentPage--;
+                            this.updateList(config);
+                        }
+                    });
+
+                    nextBtn.addEventListener('click', () => {
+                        const totalPages = Math.ceil(this.state[config.id].filtered.length / this.ITEMS_PER_PAGE);
+                        if (this.state[config.id].currentPage < totalPages) {
+                            this.state[config.id].currentPage++;
+                            this.updateList(config);
+                        }
+                    });
+                    
+                    document.getElementById(`${config.id}-list`).addEventListener('click', async (e) => {
+                        const deleteButton = e.target.closest('.delete-btn');
+                        const editButton = e.target.closest('.edit-btn');
+
+                        if (deleteButton) {
+                            const docId = deleteButton.dataset.id;
+                            const confirmed = await modal.show('Tem certeza que deseja excluir este item?');
+                            if (confirmed) {
+                                try {
+                                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', config.collection, docId));
+                                } catch (error) {
+                                    modal.show(`Erro ao excluir ${config.singularName}. Detalhes: ${error.message}`, false);
+                                }
+                            }
+                        } else if (editButton) {
+                            const docId = editButton.dataset.id;
+                            const itemToEdit = this.state[config.id].all.find(item => item.id === docId);
+                            if (itemToEdit) {
+                                this.editItem(config.id, itemToEdit);
+                            } else {
+                                modal.show(`Não foi possível encontrar o item para edição.`, false);
+                            }
+                        }
+                    });
+
+                    cancelEditBtn.addEventListener('click', () => {
+                        this.cancelEdit(config.id);
+                    });
+                },
+                
+                listenToCollection(config) {
+                    onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', config.collection), (snapshot) => {
+                        let items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                        if (items.length > 0 && 'nome' in items[0]) {
+                            items.sort((a, b) => a.nome.localeCompare(b.nome));
+                        }
+                        this.state[config.id].all = items;
+                        if (config.onDataLoad) config.onDataLoad(items);
+                        this.updateList(config);
+                    });
+                },
+
+                updateList(config) {
+                    const state = this.state[config.id];
+                    const listEl = document.getElementById(`${config.id}-list`);
+                    const paginationEl = document.getElementById(`${config.id}-pagination`);
+                    
+                    const searchTerm = state.searchTerm.toLowerCase();
+                    state.filtered = state.all.filter(item => item.nome.toLowerCase().includes(searchTerm));
+
+                    if (state.filtered.length === 0) {
+                        listEl.innerHTML = `<p class="text-center py-10 text-gray-500">Nenhum item encontrado.</p>`;
+                        paginationEl.classList.add('hidden');
+                        return;
+                    }
+                    
+                    paginationEl.classList.remove('hidden');
+                    
+                    const startIndex = (state.currentPage - 1) * this.ITEMS_PER_PAGE;
+                    const endIndex = startIndex + this.ITEMS_PER_PAGE;
+                    const paginatedItems = state.filtered.slice(startIndex, endIndex);
+
+                    listEl.innerHTML = paginatedItems.map(item => config.renderItem(item)).join('');
+                    
+                    const pageInfo = document.getElementById(`${config.id}-page-info`);
+                    const prevBtn = document.getElementById(`${config.id}-prev`);
+                    const nextBtn = document.getElementById(`${config.id}-next`);
+                    const totalPages = Math.ceil(state.filtered.length / this.ITEMS_PER_PAGE);
+
+                    pageInfo.textContent = `Página ${state.currentPage} de ${totalPages || 1}`;
+                    prevBtn.disabled = state.currentPage === 1;
+                    nextBtn.disabled = state.currentPage === totalPages || totalPages === 0;
+                },
+                
+                getSelectOptions(entityId, textKey, valueKey) {
+                    const items = this.state[entityId]?.all || [];
+                    return '<option value="">Selecione...</option>' + items.map(item => `<option value="${item[valueKey]}">${item[textKey]}</option>`).join('');
+                },
+
+                editItem(entityId, itemData) {
+                    const form = document.getElementById(`${entityId}-form`);
+                    const docIdInput = document.getElementById(`${entityId}-doc-id`);
+                    const submitBtn = document.getElementById(`${entityId}-submit-btn`);
+                    const cancelEditBtn = document.getElementById(`${entityId}-cancel-edit-btn`);
+
+                    docIdInput.value = itemData.id;
+                    
+                    if (entityId === 'tipos') {
+                        form['tipo-nome'].value = itemData.nome;
+                    } else if (entityId === 'empresas') {
+                        form['empresa-tipo-select'].value = itemData.tipoId;
+                        form['empresa-nome'].value = itemData.nome;
+                    } else if (entityId === 'contas') {
+                        form['conta-nome'].value = itemData.nome;
+                        form['conta-empresa-select'].value = itemData.empresaId;
+                    } else if (entityId === 'pessoas') {
+                        form['pessoa-nome'].value = itemData.nome;
+                        form['pessoa-cargo'].value = itemData.cargo;
+                        form['pessoa-data-entrada'].value = itemData.dataEntrada ? itemData.dataEntrada.split('T')[0] : '';
+                    }
+
+                    submitBtn.textContent = `Atualizar ${this.configs[entityId].singularName}`;
+                    cancelEditBtn.classList.remove('hidden');
+                },
+
+                cancelEdit(entityId) {
+                    const form = document.getElementById(`${entityId}-form`);
+                    const docIdInput = document.getElementById(`${entityId}-doc-id`);
+                    const submitBtn = document.getElementById(`${entityId}-submit-btn`);
+                    const cancelEditBtn = document.getElementById(`${entityId}-cancel-edit-btn`);
+
+                    form.reset();
+                    docIdInput.value = '';
+                    submitBtn.textContent = `Salvar ${this.configs[entityId].singularName}`;
+                    cancelEditBtn.classList.add('hidden');
+                },
+                
+                configs: {}
+            };
+            
+            cadastroManager.init({
+                id: 'tipos', singularName: 'Tipo', formTitle: 'Novo Tipo de Empresa', listTitle: 'Tipos Cadastrados', collection: 'tipos_empresa',
+                formFields: `<div><label for="tipo-nome" class="block text-sm font-medium text-gray-700 mb-1">Nome do Tipo <span class="text-red-500">*</span></label><input type="text" id="tipo-nome" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"></div>`,
+                getFormData: (form) => ({ nome: form['tipo-nome'].value }),
+                renderItem: (item) => `
+                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        <span>${item.nome}</span>
+                        <div class="flex space-x-2">
+                            <button data-id="${item.id}" class="edit-btn text-blue-500 hover:text-blue-700">Editar</button>
+                            <button data-id="${item.id}" class="delete-btn text-red-500 hover:text-red-700">Excluir</button>
+                        </div>
+                    </div>`,
+                onDataLoad: () => { 
+                    document.getElementById('empresa-tipo-select').innerHTML = cadastroManager.getSelectOptions('tipos', 'nome', 'id'); 
+                    tiposLoaded = true;
+                    generateStatementData();
+                    checkAllCadastrosLoadedAndRenderPagamentos();
+                    renderHomePanels();
+                }
+            });
+            cadastroManager.configs.tipos = { singularName: 'Tipo' };
+
+            cadastroManager.init({
+                id: 'empresas', singularName: 'Empresa', formTitle: 'Nova Empresa', listTitle: 'Empresas Cadastradas', collection: 'empresas',
+                formFields: `
+                    <div>
+                        <label for="empresa-tipo-select" class="block text-sm font-medium text-gray-700 mb-1">Tipo <span class="text-red-500">*</span></label>
+                        <select id="empresa-tipo-select" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></select>
+                    </div>
+                    <div>
+                        <label for="empresa-nome" class="block text-sm font-medium text-gray-700 mb-1">Nome da Empresa <span class="text-red-500">*</span></label>
+                        <input type="text" id="empresa-nome" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>`,
+                getFormData: (form) => ({ nome: form['empresa-nome'].value, tipoId: form['empresa-tipo-select'].value }),
+                renderItem: (item) => {
+                    const tipoNome = cadastroManager.state.tipos?.all.find(t => String(t.id) === String(item.tipoId))?.nome || 'N/A';
+                    return `
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span>${item.nome} (${tipoNome})</span>
+                            <div class="flex space-x-2">
+                                <button data-id="${item.id}" class="edit-btn text-blue-500 hover:text-blue-700">Editar</button>
+                                <button data-id="${item.id}" class="delete-btn text-red-500">Excluir</button>
+                            </div>
+                        </div>`;
+                },
+                onDataLoad: () => { 
+                    document.getElementById('conta-empresa-select').innerHTML = cadastroManager.getSelectOptions('empresas', 'nome', 'id'); 
+                    empresasLoaded = true;
+                    generateStatementData();
+                    checkAllCadastrosLoadedAndRenderPagamentos();
+                    renderHomePanels();
+                }
+            });
+            cadastroManager.configs.empresas = { singularName: 'Empresa' };
+
+            cadastroManager.init({
+                id: 'contas', singularName: 'Conta', formTitle: 'Nova Conta', listTitle: 'Contas Cadastradas', collection: 'contas',
+                formFields: `<div><label for="conta-nome" class="block text-sm font-medium text-gray-700 mb-1">Nome da Conta <span class="text-red-500">*</span></label><input type="text" id="conta-nome" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div><div><label for="conta-empresa-select" class="block text-sm font-medium text-gray-700 mb-1">Empresa <span class="text-red-500">*</span></label><select id="conta-empresa-select" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></select></div>`,
+                getFormData: (form) => ({ nome: form['conta-nome'].value, empresaId: form['conta-empresa-select'].value }),
+                renderItem: (item) => {
+                    const empresa = cadastroManager.state.empresas?.all.find(e => String(e.id) === String(item.empresaId));
+                    const tipoNome = empresa ? (cadastroManager.state.tipos?.all.find(t => String(t.id) === String(empresa.tipoId))?.nome || 'N/A') : 'N/A';
+                    return `
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                            <span>${item.nome} (${empresa?.nome || 'N/A'} - ${tipoNome})</span>
+                            <div class="flex space-x-2">
+                                <button data-id="${item.id}" class="edit-btn text-blue-500 hover:text-blue-700">Editar</button>
+                                <button data-id="${item.id}" class="delete-btn text-red-500">Excluir</button>
+                            </div>
+                        </div>`;
+                },
+                onDataLoad: (contas) => { 
+                    contasLoaded = true;
+                    generateStatementData();
+                    checkAllCadastrosLoadedAndRenderPagamentos(); 
+                    renderHomePanels();
+                },
+                onFormSubmitSuccess: (newDocId) => {}
+            });
+            cadastroManager.configs.contas = { singularName: 'Conta' };
+            
+            cadastroManager.init({
+                id: 'pessoas', singularName: 'Pessoa', formTitle: 'Nova Pessoa', listTitle: 'Pessoas Cadastradas', collection: 'pessoas',
+                formFields: `<div><label for="pessoa-nome" class="block text-sm font-medium text-gray-700 mb-1">Nome <span class="text-red-500">*</span></label><input type="text" id="pessoa-nome" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div><div><label for="pessoa-cargo" class="block text-sm font-medium text-gray-700 mb-1">Cargo <span class="text-red-500">*</span></label><select id="pessoa-cargo" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"><option value="Proprietário">Proprietário</option><option value="Operacional">Operacional</option><option value="Administrativo">Administrativo</option></select></div><div><label for="pessoa-data-entrada" class="block text-sm font-medium text-gray-700 mb-1">Data de Entrada</label><input type="date" id="pessoa-data-entrada" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>`,
+                getFormData: (form) => ({ nome: form['pessoa-nome'].value, cargo: form['pessoa-cargo'].value, dataEntrada: form['pessoa-data-entrada'].value || null }),
+                renderItem: (item) => `
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-semibold">${item.nome}</p>
+                            <p class="text-sm text-gray-600">${item.cargo}</p>
+                            <p class="text-xs text-gray-500 mt-1">Entrada: ${formatDateOnly(item.dataEntrada)}</p>
+                            <p class="text-xs text-gray-500">Tempo de casa: ${calculateTenure(item.dataEntrada)}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button data-id="${item.id}" class="edit-btn text-blue-500 hover:text-blue-700">Editar</button>
+                            <button data-id="${item.id}" class="delete-btn text-red-500 hover:text-red-700">Excluir</button>
+                        </div>
+                    </div>`,
+                onDataLoad: () => { 
+                    document.getElementById('saida-pessoa-select').innerHTML = cadastroManager.getSelectOptions('pessoas', 'nome', 'id');
+                    pessoasLoaded = true; // Adicionado
+                    generateStatementData(); // Adicionado
+                    renderHomePanels();
+                }
+            });
+            cadastroManager.configs.pessoas = { singularName: 'Pessoa' };
+            
+            let caixinhas = [];
+            let editingCaixinhaId = null;
+            let caixinhaAction = { id: null, type: null };
+
+            const totalCaixinhasSavedEl = document.getElementById('totalCaixinhasSaved');
+            const addEditCaixinhaModal = document.getElementById('addEditCaixinhaModal');
+            const closeAddEditModalBtn = document.getElementById('closeAddEditModalBtn');
+            const showAddCaixinhaBtn = document.getElementById('showAddCaixinhaBtn');
+            const submitCaixinhaBtn = document.getElementById('submitCaixinhaBtn');
+            const cancelAddEditModalBtn = document.getElementById('cancelAddEditModalBtn');
+            const formTitle = document.getElementById('formTitle');
+            const caixinhaNameInput = document.getElementById('caixinhaName');
+            const caixinhaValueInput = document.getElementById('caixinhaValue');
+            const caixinhaInstallmentsInput = document.getElementById('caixinhaInstallments');
+            const paymentDayInput = document.getElementById('paymentDay');
+            const caixinhaStartDateInput = document.getElementById('caixinhaStartDate');
+            const caixinhaDescriptionInput = document.getElementById('caixinhaDescription');
+            const caixinhasContainer = document.getElementById('caixinhasContainer');
+            const archivedCaixinhasContainer = document.getElementById('archivedCaixinhasContainer');
+            const toggleArchivedBtn = document.getElementById('toggleArchivedBtn');
+            const paymentDetailsModal = document.getElementById('paymentDetailsModal');
+            const closePaymentDetailsModalBtn = document.getElementById('closePaymentDetailsModalBtn');
+            const modalTitleCaixinha = document.getElementById('modalTitle');
+            const modalTotalValue = document.getElementById('modalTotalValue');
+            const modalCurrentSaved = document.getElementById('modalCurrentSaved');
+            const modalMonthlyPayment = document.getElementById('modalMonthlyPayment');
+            const paymentList = document.getElementById('paymentList');
+            const confirmCaixinhaModal = document.getElementById('confirmCaixinhaModal');
+            const confirmCaixinhaModalTitle = document.getElementById('confirmCaixinhaModalTitle');
+            const confirmCaixinhaModalText = document.getElementById('confirmCaixinhaModalText');
+            const confirmCaixinhaActionBtn = document.getElementById('confirmCaixinhaActionBtn');
+            const cancelCaixinhaActionBtn = document.getElementById('cancelCaixinhaActionBtn');
+
+            function closeCaixinhaModal(modalElement) {
+                modalElement.classList.remove('show');
+            }
+
+            function openCaixinhaModal(modalElement) {
+                modalElement.classList.add('show');
+            }
+
+            closePaymentDetailsModalBtn.addEventListener('click', () => closeCaixinhaModal(paymentDetailsModal));
+            paymentDetailsModal.addEventListener('click', (e) => {
+                if (e.target === paymentDetailsModal) {
+                    closeCaixinhaModal(paymentDetailsModal);
+                }
+            });
+
+            closeAddEditModalBtn.addEventListener('click', () => closeCaixinhaModal(addEditCaixinhaModal));
+            cancelAddEditModalBtn.addEventListener('click', () => closeCaixinhaModal(addEditCaixinhaModal));
+            addEditCaixinhaModal.addEventListener('click', (e) => {
+                if (e.target === addEditCaixinhaModal) {
+                    closeCaixinhaModal(addEditCaixinhaModal);
+                }
+            });
+
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'caixinhas'), (snapshot) => {
+                caixinhas = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderCaixinhas();
+                updateTotalCaixinhasSaved();
+            }, (error) => {
+                modal.show(`Erro ao carregar caixinhas. Detalhes: ${error.message}`, false);
+            });
+
+            function updateTotalCaixinhasSaved() {
+                const totalSaved = caixinhas.reduce((sum, caixinha) => sum + (caixinha.currentSaved || 0), 0);
+                totalCaixinhasSavedEl.textContent = formatCurrencyBRL(totalSaved);
+            }
+
+            async function showPaymentDetails(caixinha) {
+                const { id, name, totalValue, currentSaved, installments, paymentDay, startDate } = caixinha;
+                modalTitleCaixinha.textContent = `Detalhes de Pagamento: ${name}`;
+                modalTotalValue.textContent = formatCurrencyBRL(totalValue);
+                modalCurrentSaved.textContent = formatCurrencyBRL(currentSaved);
+                modalMonthlyPayment.textContent = formatCurrencyBRL(totalValue / installments);
+
+                paymentList.innerHTML = '<tr><td colspan="6" class="text-center p-4">Carregando parcelas...</td></tr>';
+                openCaixinhaModal(paymentDetailsModal);
+
+                const installmentsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'saidas'), where('caixinhaId', '==', id));
+                const snapshot = await getDocs(installmentsQuery);
+                let caixinhaInstallments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Ordenar no cliente
+                caixinhaInstallments.sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento));
+
+                paymentList.innerHTML = '';
+                if (caixinhaInstallments.length === 0) {
+                    paymentList.innerHTML = '<tr><td colspan="6" class="text-center p-4">Nenhuma parcela encontrada para esta caixinha.</td></tr>';
+                    return;
+                }
+                
+                const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+                caixinhaInstallments.forEach(installment => {
+                    const vencimentoDate = new Date(installment.vencimento + 'T12:00:00');
+                    const monthName = months[vencimentoDate.getMonth()];
+                    
+                    const isPaid = !!installment.dataPagamento;
+                    const status = isPaid ? 'Pago' : 'Pendente';
+                    const statusColor = isPaid ? 'text-emerald-600' : 'text-red-500';
+
+                    const paymentItem = document.createElement('div');
+                    paymentItem.className = `flex justify-between items-center p-3 rounded-md ${isPaid ? 'bg-emerald-50' : 'bg-gray-50'}`;
+                    paymentItem.innerHTML = `
+                        <span class="w-1/6 text-left font-medium text-gray-700">${monthName}/${vencimentoDate.getFullYear()}</span>
+                        <span class="w-1/6 text-center text-gray-800">${formatDateOnly(installment.vencimento)}</span>
+                        <span class="w-1/6 text-center text-gray-800 font-semibold">${formatCurrencyBRL(installment.valorOriginalParcela || installment.valor)}</span>
+                        <span class="w-1/6 text-center text-emerald-700 font-bold">${formatCurrencyBRL(installment.valorPago || 0)}</span>
+                        <span class="w-1/6 text-center text-gray-800">${isPaid ? formatDateOnly(installment.dataPagamento) : 'N/A'}</span>
+                        <span class="w-1/6 text-right font-semibold ${statusColor}">${status}</span>
+                    `;
+                    paymentList.appendChild(paymentItem);
+                });
+            }
+
+
+            function renderCaixinhas() {
+                const activeCaixinhas = caixinhas.filter(c => c.status !== 'arquivada');
+                const archivedCaixinhas = caixinhas.filter(c => c.status === 'arquivada');
+
+                caixinhasContainer.innerHTML = '';
+                if (activeCaixinhas.length === 0) {
+                    caixinhasContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Nenhuma caixinha ativa. Clique em "+ Adicionar Nova Caixinha" para começar!</p>';
+                }
+                activeCaixinhas.forEach(caixinha => {
+                    const caixinhaElement = createCaixinhaElement(caixinha, false);
+                    caixinhasContainer.appendChild(caixinhaElement);
+                });
+
+                archivedCaixinhasContainer.innerHTML = '';
+                if(archivedCaixinhas.length > 0){
+                    archivedCaixinhas.forEach(caixinha => {
+                        const caixinhaElement = createCaixinhaElement(caixinha, true);
+                        archivedCaixinhasContainer.appendChild(caixinhaElement);
+                    });
+                } else {
+                    archivedCaixinhasContainer.innerHTML = '<p class="text-gray-500 text-center col-span-full">Nenhuma caixinha arquivada.</p>';
+                }
+            }
+
+            function createCaixinhaElement(caixinha, isArchived) {
+                const percentage = (caixinha.currentSaved / caixinha.totalValue) * 100;
+                const remaining = caixinha.totalValue - caixinha.currentSaved;
+
+                const caixinhaDiv = document.createElement('div');
+                caixinhaDiv.className = `bg-white shadow-lg rounded-xl p-6 flex flex-col items-center text-center relative ${isArchived ? 'opacity-70' : ''}`;
+                caixinhaDiv.setAttribute('data-id', caixinha.id);
+                
+                const actionButton = isArchived ?
+                    `<button class="reactivate-caixinha-btn text-green-600 hover:text-green-700 focus:outline-none text-xs px-2 py-1 rounded-md bg-green-100 hover:bg-green-200 transition-colors">Reativar</button>` :
+                    `<button class="archive-caixinha-btn text-yellow-600 hover:text-yellow-700 focus:outline-none text-xs px-2 py-1 rounded-md bg-yellow-100 hover:bg-yellow-200 transition-colors">Arquivar</button>`;
+
+                caixinhaDiv.innerHTML = `
+                    <div class="absolute top-2 right-2 flex space-x-2">
+                        ${!isArchived ? `<button class="edit-caixinha-btn text-blue-600 hover:text-blue-700 focus:outline-none text-xs px-2 py-1 rounded-md bg-blue-100 hover:bg-blue-200 transition-colors">Editar</button>` : ''}
+                        ${actionButton}
+                    </div>
+                    <div class="cursor-pointer" data-id="${caixinha.id}">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">${caixinha.name}</h3>
+                        ${caixinha.descricao ? `<p class="text-xs text-gray-500 mb-2 italic">(${caixinha.descricao})</p>` : ''}
+                        <p class="text-gray-600 mb-4">Meta: <span class="font-semibold">${formatCurrencyBRL(caixinha.totalValue)}</span></p>
+                        
+                        <div class="donut-chart mb-4" style="--progress: ${percentage}%;">
+                            <div class="donut-chart-progress"></div>
+                            <span class="relative z-10">${percentage.toFixed(0)}%</span>
+                        </div>
+
+                        <p class="text-gray-700 text-lg font-bold mb-2">Saldo: <span class="text-emerald-600">${formatCurrencyBRL(caixinha.currentSaved)}</span></p>
+                        <p class="text-gray-500 text-sm">Faltam: ${formatCurrencyBRL(remaining)}</p>
+                        <p class="text-gray-500 text-sm">Parcelas: ${caixinha.installments}x de ${formatCurrencyBRL(caixinha.totalValue / caixinha.installments)}</p>
+                    </div>
+                `;
+
+                caixinhaDiv.querySelector('.cursor-pointer').addEventListener('click', () => showPaymentDetails(caixinha));
+                if (!isArchived) {
+                    caixinhaDiv.querySelector('.edit-caixinha-btn').addEventListener('click', () => editCaixinha(caixinha.id));
+                    caixinhaDiv.querySelector('.archive-caixinha-btn').addEventListener('click', () => showConfirmActionModal(caixinha.id, 'archive'));
+                } else {
+                    caixinhaDiv.querySelector('.reactivate-caixinha-btn').addEventListener('click', () => showConfirmActionModal(caixinha.id, 'reactivate'));
+                }
+
+                return caixinhaDiv;
+            }
+
+            toggleArchivedBtn.addEventListener('click', () => {
+                const isHidden = archivedCaixinhasContainer.classList.toggle('hidden');
+                toggleArchivedBtn.textContent = isHidden ? 'Mostrar Arquivadas' : 'Ocultar Arquivadas';
+            });
+
+            function showAddFormModal() {
+                openCaixinhaModal(addEditCaixinhaModal);
+                formTitle.textContent = "Adicionar Nova Caixinha";
+                submitCaixinhaBtn.textContent = "Criar Caixinha";
+                editingCaixinhaId = null;
+                clearForm();
+            }
+
+            function clearForm() {
+                caixinhaNameInput.value = '';
+                caixinhaValueInput.value = '';
+                caixinhaInstallmentsInput.value = '';
+                paymentDayInput.value = '';
+                caixinhaStartDateInput.value = '';
+                caixinhaDescriptionInput.value = '';
+            }
+
+            showAddCaixinhaBtn.addEventListener('click', showAddFormModal);
+
+            submitCaixinhaBtn.addEventListener('click', async () => {
+                const name = caixinhaNameInput.value.trim();
+                const totalValue = parseFloat(caixinhaValueInput.value);
+                const installments = parseInt(caixinhaInstallmentsInput.value);
+                const paymentDay = parseInt(paymentDayInput.value);
+                const startDateString = caixinhaStartDateInput.value;
+                const descricao = caixinhaDescriptionInput.value.trim();
+
+                if (name && !isNaN(totalValue) && totalValue > 0 && !isNaN(installments) && installments > 0 && !isNaN(paymentDay) && paymentDay >= 1 && paymentDay <= 31 && startDateString) {
+                    let caixinhaDocRef;
+                    let caixinhaId;
+                    const batch = writeBatch(db);
+
+                    try {
+                        const caixinhaData = { 
+                            name, 
+                            totalValue, 
+                            installments, 
+                            paymentDay, 
+                            startDate: startDateString,
+                            descricao: descricao,
+                            status: 'ativa',
+                            currentSaved: 0 
+                        };
+
+                        if (editingCaixinhaId) {
+                            caixinhaId = editingCaixinhaId;
+                            caixinhaDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'caixinhas', caixinhaId);
+                            const existingCaixinhaSnap = await getDoc(caixinhaDocRef);
+                            const existingData = existingCaixinhaSnap.data();
+                            caixinhaData.currentSaved = existingData.currentSaved;
+                            caixinhaData.status = existingData.status;
+
+                            batch.update(caixinhaDocRef, caixinhaData);
+
+                            const oldInstallmentsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'saidas'), where('caixinhaId', '==', caixinhaId));
+                            const oldInstallmentsSnapshot = await getDocs(oldInstallmentsQuery);
+                            oldInstallmentsSnapshot.forEach(oldDoc => {
+                                batch.delete(oldDoc.ref);
+                            });
+
+                        } else {
+                            caixinhaDocRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'caixinhas'));
+                            caixinhaId = caixinhaDocRef.id;
+                            batch.set(caixinhaDocRef, caixinhaData);
+                        }
+
+                        const monthlyPayment = totalValue / installments;
+                        const startDate = new Date(startDateString + '-01T12:00:00');
+                        const startMonth = startDate.getMonth();
+                        const startYear = startDate.getFullYear();
+
+                        for (let i = 0; i < installments; i++) {
+                            const dueDate = new Date(startYear, startMonth + i, paymentDay);
+                            
+                            const installmentData = {
+                                caixinhaId: caixinhaId,
+                                isCaixinhaInstallment: true,
+                                contaId: 'caixinha_internal_account',
+                                pessoaId: 'caixinha_internal_person',
+                                valor: monthlyPayment,
+                                valorOriginalParcela: monthlyPayment,
+                                vencimento: dueDate.toISOString().split('T')[0],
+                                parcelaInfo: `${i + 1}/${installments}`,
+                                dataLancamento: new Date().toISOString(),
+                                dataPagamento: null,
+                                valorPago: 0
+                            };
+                            batch.set(doc(collection(db, 'artifacts', appId, 'public', 'data', 'saidas')), installmentData);
+                        }
+
+                        await batch.commit();
+                        modal.show(editingCaixinhaId ? "Caixinha atualizada com sucesso!" : "Caixinha criada com sucesso!", false);
+                        closeCaixinhaModal(addEditCaixinhaModal);
+                    } catch (error) {
+                        modal.show(`Erro ao salvar caixinha. Detalhes: ${error.message}`, false);
+                    }
+                } else {
+                    modal.show("Por favor, preencha todos os campos corretamente, incluindo o Mês de Início.", false);
+                }
+            });
+
+            function editCaixinha(id) {
+                const caixinha = caixinhas.find(c => c.id === id);
+                if (caixinha) {
+                    openCaixinhaModal(addEditCaixinhaModal);
+                    formTitle.textContent = "Editar Caixinha";
+                    submitCaixinhaBtn.textContent = "Atualizar Caixinha";
+                    
+                    caixinhaNameInput.value = caixinha.name;
+                    caixinhaValueInput.value = caixinha.totalValue;
+                    caixinhaInstallmentsInput.value = caixinha.installments;
+                    paymentDayInput.value = caixinha.paymentDay;
+                    caixinhaStartDateInput.value = caixinha.startDate || '';
+                    caixinhaDescriptionInput.value = caixinha.descricao || '';
+                    editingCaixinhaId = id;
+                }
+            }
+
+            function showConfirmActionModal(id, type) {
+                caixinhaAction = { id, type };
+                if (type === 'archive') {
+                    confirmCaixinhaModalTitle.textContent = 'Confirmar Arquivamento';
+                    confirmCaixinhaModalText.textContent = 'Tem certeza que deseja arquivar esta caixinha? Ela sairá da lista principal mas seus registros serão mantidos.';
+                    confirmCaixinhaActionBtn.textContent = 'Arquivar';
+                    confirmCaixinhaActionBtn.className = 'bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-md';
+                } else if (type === 'reactivate') {
+                    confirmCaixinhaModalTitle.textContent = 'Confirmar Reativação';
+                    confirmCaixinhaModalText.textContent = 'Deseja reativar esta caixinha? Ela voltará para a lista de caixinhas ativas.';
+                    confirmCaixinhaActionBtn.textContent = 'Reativar';
+                    confirmCaixinhaActionBtn.className = 'bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md';
+                }
+                openCaixinhaModal(confirmCaixinhaModal);
+            }
+
+            confirmCaixinhaActionBtn.addEventListener('click', async () => {
+                const { id, type } = caixinhaAction;
+                if (id) {
+                    const newStatus = type === 'archive' ? 'arquivada' : 'ativa';
+                    try {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'caixinhas', id), { status: newStatus });
+                        modal.show(`Caixinha ${newStatus} com sucesso!`, false);
+                    } catch (error) {
+                         modal.show(`Erro ao atualizar caixinha. Detalhes: ${error.message}`, false);
+                    } finally {
+                        caixinhaAction = { id: null, type: null };
+                        closeCaixinhaModal(confirmCaixinhaModal);
+                    }
+                }
+            });
+
+            cancelCaixinhaActionBtn.addEventListener('click', () => {
+                caixinhaAction = { id: null, type: null };
+                closeCaixinhaModal(confirmCaixinhaModal);
+            });
+
+            async function ensureCaixinhaInternalCadastros() {
+                const batch = writeBatch(db);
+                const typesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'tipos_empresa');
+                const companiesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'empresas');
+                const accountsCollection = collection(db, 'artifacts', appId, 'public', 'data', 'contas');
+                const peopleCollection = collection(db, 'artifacts', appId, 'public', 'data', 'pessoas');
+
+                const internalTypeRef = doc(typesCollection, 'caixinha_internal_type');
+                const internalTypeSnap = await getDoc(internalTypeRef);
+                if (!internalTypeSnap.exists()) {
+                    batch.set(internalTypeRef, { nome: 'Interno' });
+                }
+
+                const internalCompanyRef = doc(companiesCollection, 'caixinha_internal_company');
+                const internalCompanySnap = await getDoc(internalCompanyRef);
+                if (!internalCompanySnap.exists()) {
+                    batch.set(internalCompanyRef, { nome: 'Caixinhas', tipoId: 'caixinha_internal_type' });
+                }
+
+                const internalAccountRef = doc(accountsCollection, 'caixinha_internal_account');
+                const internalAccountSnap = await getDoc(internalAccountRef);
+                if (!internalAccountSnap.exists()) {
+                    batch.set(internalAccountRef, { nome: 'Conta Interna Caixinhas', empresaId: 'caixinha_internal_company' });
+                }
+
+                const internalPersonRef = doc(peopleCollection, 'caixinha_internal_person');
+                const internalPersonSnap = await getDoc(internalPersonRef);
+                if (!internalPersonSnap.exists()) {
+                    batch.set(internalPersonRef, { nome: 'Sistema', cargo: 'Interno', dataEntrada: null });
+                }
+
+                try {
+                    await batch.commit();
+                } catch (error) {
+                    modal.show(`Erro ao preparar cadastros internos. Detalhes: ${error.message}`, false);
+                }
+            }
+        };
+    </script>
+</body>
+</html>
