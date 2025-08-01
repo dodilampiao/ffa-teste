@@ -12,6 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- jsPDF Library for PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Chart.js for graphics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -215,11 +217,12 @@
                         <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="cadastrosNav">Cadastros</a>
                         <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="extrato">Extrato</a>
                         <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="caixinhas">Caixinhas</a>
+                        <a href="#" class="nav-link text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium" data-target="graficos">Gráficos</a>
                     </div>
                     <div class="flex items-center">
                         <span id="logged-in-user-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hidden sm:block"></span>
                         <div id="version-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg cursor-pointer hover:bg-gray-700 transition-colors ml-3">
-                            Versão 2.8
+                            Versão 2.10
                         </div>
                         <button id="logout-btn" class="ml-3 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hover:bg-red-700 transition-colors">
                             Sair
@@ -237,15 +240,16 @@
                 <div class="text-center mb-12"><h1 class="text-4xl md:text-5xl font-bold text-gray-100">FFA</h1><p class="text-lg text-gray-400 mt-2">Financeiro Fazenda Aliança</p></div>
                 
                 <!-- VISTA CLÁSSICA (QUANDO NÃO HÁ CONTAS VENCENDO HOJE) -->
-                <div id="home-classic-view" class="w-full max-w-2xl hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div id="home-classic-view" class="w-full max-w-4xl hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-green-500 transition-all duration-300" data-target="entries"><h2 class="text-xl font-semibold text-gray-700">Entradas</h2></a>
                         <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-red-500 transition-all duration-300" data-target="saidas"><h2 class="text-xl font-semibold text-gray-700">Saídas</h2></a>
                         <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-teal-500 transition-all duration-300" data-target="pagamentos"><h2 class="text-xl font-semibold text-gray-700">Pagamentos</h2></a>
                         <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-purple-500 transition-all duration-300" data-target="cadastrosNav"><h2 class="text-xl font-semibold text-gray-700">Cadastros</h2></a>
                         <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-blue-500 transition-all duration-300" data-target="extrato"><h2 class="text-xl font-semibold text-gray-700">Extrato</h2></a>
                         <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-emerald-500 transition-all duration-300" data-target="caixinhas"><h2 class="text-xl font-semibold text-gray-700">Caixinhas</h2></a>
-                        <a href="https://lookerstudio.google.com/reporting/1ae612d8-5be7-4c08-bfaa-4d5881e5fdcd" target="_blank" class="group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-yellow-500 transition-all duration-300 md:col-span-2"><h2 class="text-xl font-semibold text-gray-700">Dashboard</h2></a>
+                        <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-yellow-500 transition-all duration-300 md:col-span-3" data-target="graficos"><h2 class="text-xl font-semibold text-gray-700">Gráficos</h2></a>
+                        <a href="https://lookerstudio.google.com/reporting/1ae612d8-5be7-4c08-bfaa-4d5881e5fdcd" target="_blank" class="group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-indigo-500 transition-all duration-300 md:col-span-3"><h2 class="text-xl font-semibold text-gray-700">Dashboard</h2></a>
                     </div>
                 </div>
 
@@ -259,7 +263,8 @@
                             <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-purple-500 transition-all duration-300" data-target="cadastrosNav"><h2 class="text-xl font-semibold text-gray-700">Cadastros</h2></a>
                             <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-blue-500 transition-all duration-300" data-target="extrato"><h2 class="text-xl font-semibold text-gray-700">Extrato</h2></a>
                             <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-emerald-500 transition-all duration-300" data-target="caixinhas"><h2 class="text-xl font-semibold text-gray-700">Caixinhas</h2></a>
-                            <a href="https://lookerstudio.google.com/reporting/1ae612d8-5be7-4c08-bfaa-4d5881e5fdcd" target="_blank" class="group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-yellow-500 transition-all duration-300 sm:col-span-2"><h2 class="text-xl font-semibold text-gray-700">Dashboard</h2></a>
+                            <a href="#" class="nav-link group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-yellow-500 transition-all duration-300 sm:col-span-2" data-target="graficos"><h2 class="text-xl font-semibold text-gray-700">Gráficos</h2></a>
+                            <a href="https://lookerstudio.google.com/reporting/1ae612d8-5be7-4c08-bfaa-4d5881e5fdcd" target="_blank" class="group flex flex-col items-center justify-center p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg hover:border-indigo-500 transition-all duration-300 sm:col-span-2"><h2 class="text-xl font-semibold text-gray-700">Dashboard</h2></a>
                         </div>
                     </div>
                     <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
@@ -486,6 +491,49 @@
                         <button id="extrato-prev-page" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Anterior</button>
                         <span id="extrato-page-info" class="text-sm text-gray-600"></span>
                         <button id="extrato-next-page" class="pagination-btn px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Próxima</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================= -->
+        <!-- TELA DE GRÁFICOS                                        -->
+        <!-- ======================================================= -->
+        <div id="graficos-screen" class="hidden pt-24">
+            <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+                <div class="bg-white p-8 rounded-xl shadow-md">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Análise Gráfica</h2>
+
+                    <!-- FILTERS -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-gray-50 rounded-lg border">
+                        <div>
+                            <label for="graficos-year-filter" class="block text-sm font-medium text-gray-700">Ano</label>
+                            <select id="graficos-year-filter" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></select>
+                        </div>
+                        <div>
+                            <label for="graficos-month-filter" class="block text-sm font-medium text-gray-700">Mês</label>
+                            <select id="graficos-month-filter" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></select>
+                        </div>
+                        <div>
+                            <label for="graficos-tipo-empresa-filter" class="block text-sm font-medium text-gray-700">Tipo de Empresa</label>
+                            <select id="graficos-tipo-empresa-filter" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></select>
+                        </div>
+                    </div>
+
+                    <!-- CHARTS -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                             <h3 class="text-xl font-semibold text-gray-700 mb-4 text-center">Entradas vs. Saídas Pagas</h3>
+                            <div class="relative h-96">
+                                <canvas id="monthly-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-6 rounded-lg">
+                            <h3 id="donut-chart-title" class="text-xl font-semibold text-gray-700 mb-4 text-center">Distribuição de Gastos por Tipo de Empresa</h3>
+                            <div class="relative h-96 flex items-center justify-center">
+                                <canvas id="donut-chart"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -864,7 +912,8 @@
                 empresas: document.getElementById('empresas-screen'), 
                 contas: document.getElementById('contas-screen'), 
                 pessoas: document.getElementById('pessoas-screen'),
-                caixinhas: document.getElementById('caixinhas-screen')
+                caixinhas: document.getElementById('caixinhas-screen'),
+                graficos: document.getElementById('graficos-screen')
             };
             const showScreen = (screenName) => { Object.values(screens).forEach(s => s.classList.add('hidden')); screens[screenName].classList.remove('hidden'); };
 
@@ -900,6 +949,11 @@
                         'contas': () => showScreen('contas'),
                         'pessoas': () => showScreen('pessoas'),
                         'caixinhas': () => showScreen('caixinhas'),
+                        'graficos': () => {
+                            showScreen('graficos');
+                            populateChartFilters();
+                            updateCharts();
+                        },
                         'main': () => showScreen('main')
                     };
                     
@@ -1011,6 +1065,7 @@
                 allDbEntries.sort((a,b) => new Date(b.data) - new Date(a.data)); 
                 renderDbEntries();
                 generateStatementData(); 
+                updateCharts();
             });
 
             entryForm.addEventListener('submit', async (e) => {
@@ -1256,7 +1311,8 @@
                 renderPagamentosList(); 
                 generateStatementData(); 
                 calculateAndRenderMonthlySummary();
-                renderHomePanels(); // Adicionado
+                renderHomePanels();
+                updateCharts();
             });
 
             // Lógica do painel de resumo mensal
@@ -2001,6 +2057,170 @@
                  const totalPages = Math.ceil(currentFilteredExtratoItems.length / EXTRATO_ITEMS_PER_PAGE);
                  if (extratoCurrentPage < totalPages) { extratoCurrentPage++; renderExtratoList(); }
             });
+
+            // --- LÓGICA GRÁFICOS ---
+            const graficosYearFilter = document.getElementById('graficos-year-filter');
+            const graficosMonthFilter = document.getElementById('graficos-month-filter');
+            const graficosTipoEmpresaFilter = document.getElementById('graficos-tipo-empresa-filter');
+            const donutChartTitle = document.getElementById('donut-chart-title');
+
+            let monthlyChartInstance = null;
+            let donutChartInstance = null;
+
+            function populateChartFilters() {
+                // Preencher Anos
+                const years = new Set();
+                [...allDbEntries, ...allSaidas].forEach(item => {
+                    const date = new Date(item.data || item.dataPagamento || item.vencimento);
+                    if (!isNaN(date)) years.add(date.getFullYear());
+                });
+                graficosYearFilter.innerHTML = '<option value="">Todos</option>';
+                [...years].sort((a,b) => b - a).forEach(year => {
+                    graficosYearFilter.innerHTML += `<option value="${year}">${year}</option>`;
+                });
+                graficosYearFilter.value = new Date().getFullYear();
+
+                // Preencher Meses
+                const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                graficosMonthFilter.innerHTML = '<option value="">Todos</option>';
+                monthNames.forEach((month, index) => {
+                    graficosMonthFilter.innerHTML += `<option value="${index}">${month}</option>`;
+                });
+                graficosMonthFilter.value = "";
+
+                // Preencher Tipos de Empresa
+                graficosTipoEmpresaFilter.innerHTML = '<option value="">Todos os Tipos</option>';
+                cadastroManager.state.tipos.all.forEach(tipo => {
+                    graficosTipoEmpresaFilter.innerHTML += `<option value="${tipo.id}">${tipo.nome}</option>`;
+                });
+            }
+
+            function updateCharts() {
+                if (!checkAllCadastrosLoaded()) return;
+
+                const year = graficosYearFilter.value;
+                const month = graficosMonthFilter.value;
+                const tipoEmpresaId = graficosTipoEmpresaFilter.value;
+
+                const filteredEntries = allDbEntries.filter(entry => {
+                    const date = new Date(entry.data);
+                    const yearMatch = !year || date.getFullYear() == year;
+                    const monthMatch = !month || date.getMonth() == month;
+                    return yearMatch && monthMatch;
+                });
+
+                const filteredSaidas = allSaidas.filter(saida => {
+                    const date = new Date(saida.dataPagamento || saida.vencimento);
+                    const yearMatch = !year || date.getFullYear() == year;
+                    const monthMatch = !month || date.getMonth() == month;
+                    return yearMatch && monthMatch;
+                });
+
+                renderMonthlyChart(filteredEntries, filteredSaidas);
+                renderDonutChart(filteredSaidas, tipoEmpresaId);
+            }
+
+            graficosYearFilter.addEventListener('change', updateCharts);
+            graficosMonthFilter.addEventListener('change', updateCharts);
+            graficosTipoEmpresaFilter.addEventListener('change', updateCharts);
+            
+            function renderMonthlyChart(entries, saidas) {
+                const monthlyData = {};
+                const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+                entries.forEach(entry => {
+                    const date = new Date(entry.data);
+                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    if (!monthlyData[key]) monthlyData[key] = { entradas: 0, saidas: 0, label: `${monthNames[date.getMonth()]}/${String(date.getFullYear()).slice(2)}` };
+                    monthlyData[key].entradas += entry.valor;
+                });
+
+                saidas.filter(s => s.dataPagamento).forEach(saida => {
+                    const date = new Date(saida.dataPagamento);
+                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    if (!monthlyData[key]) monthlyData[key] = { entradas: 0, saidas: 0, label: `${monthNames[date.getMonth()]}/${String(date.getFullYear()).slice(2)}` };
+                    monthlyData[key].saidas += saida.valorPago || saida.valor;
+                });
+
+                const sortedKeys = Object.keys(monthlyData).sort();
+                const labels = sortedKeys.map(key => monthlyData[key].label);
+                const entradasData = sortedKeys.map(key => monthlyData[key].entradas);
+                const saidasData = sortedKeys.map(key => monthlyData[key].saidas);
+
+                const ctx = document.getElementById('monthly-chart').getContext('2d');
+                if (monthlyChartInstance) monthlyChartInstance.destroy();
+                monthlyChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [ { label: 'Entradas (R$)', data: entradasData, backgroundColor: 'rgba(16, 185, 129, 0.6)' }, { label: 'Saídas Pagas (R$)', data: saidasData, backgroundColor: 'rgba(239, 68, 68, 0.6)' } ] },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) } } }, plugins: { tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` } } } }
+                });
+            }
+
+            function renderDonutChart(saidas, tipoEmpresaId) {
+                const contasMap = new Map(cadastroManager.state.contas.all.map(c => [c.id, c]));
+                const empresasMap = new Map(cadastroManager.state.empresas.all.map(e => [e.id, e]));
+                const tiposMap = new Map(cadastroManager.state.tipos.all.map(t => [t.id, t]));
+
+                let dataGroup = {};
+                
+                const paidSaidas = saidas.filter(s => s.dataPagamento && !s.isCaixinhaInstallment);
+
+                if (tipoEmpresaId) {
+                    // Agrupar por Empresa dentro do Tipo selecionado
+                    const tipoSelecionado = tiposMap.get(tipoEmpresaId);
+                    donutChartTitle.textContent = `Gastos por Empresa em "${tipoSelecionado?.nome || 'N/A'}"`;
+
+                    paidSaidas.forEach(saida => {
+                        const conta = contasMap.get(saida.contaId);
+                        if (!conta) return;
+                        const empresa = empresasMap.get(conta.empresaId);
+                        if (!empresa || empresa.tipoId !== tipoEmpresaId) return;
+
+                        if (!dataGroup[empresa.id]) dataGroup[empresa.id] = { name: empresa.nome, value: 0 };
+                        dataGroup[empresa.id].value += saida.valorPago || saida.valor;
+                    });
+
+                } else {
+                    // Agrupar por Tipo de Empresa
+                    donutChartTitle.textContent = 'Distribuição de Gastos por Tipo de Empresa';
+                    paidSaidas.forEach(saida => {
+                        const conta = contasMap.get(saida.contaId);
+                        if (!conta) return;
+                        const empresa = empresasMap.get(conta.empresaId);
+                        if (!empresa) return;
+                        const tipo = tiposMap.get(empresa.tipoId);
+                        if (!tipo) return;
+
+                        if (!dataGroup[tipo.id]) dataGroup[tipo.id] = { name: tipo.nome, value: 0 };
+                        dataGroup[tipo.id].value += saida.valorPago || saida.valor;
+                    });
+                }
+
+                const labels = Object.values(dataGroup).map(d => d.name);
+                const data = Object.values(dataGroup).map(d => d.value);
+
+                const ctx = document.getElementById('donut-chart').getContext('2d');
+                if (donutChartInstance) donutChartInstance.destroy();
+                donutChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Gasto (R$)',
+                            data: data,
+                            backgroundColor: ['#34D399', '#F87171', '#60A5FA', '#FBBF24', '#A78BFA', '#F472B6', '#2DD4BF', '#93C5FD'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: { callbacks: { label: (c) => `${c.label}: ${c.parsed.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` } }
+                        }
+                    }
+                });
+            }
 
             const cadastroManager = {
                 state: {},
