@@ -14,6 +14,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Chart.js for graphics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Baixar planilha -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -222,7 +224,7 @@
                     <div class="flex items-center">
                         <span id="logged-in-user-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hidden sm:block"></span>
                         <div id="version-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg cursor-pointer hover:bg-gray-700 transition-colors ml-3">
-                            Versão 2.10
+                            Versão 2.13 xlsx pgto
                         </div>
                         <button id="logout-btn" class="ml-3 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hover:bg-red-700 transition-colors">
                             Sair
@@ -336,7 +338,18 @@
                     </div>
                     <div class="lg:col-span-3">
                         <div class="bg-white p-8 rounded-xl shadow-md min-h-full flex flex-col">
-                            <h2 class="text-2xl font-bold text-gray-800 mb-6">Entradas Registradas</h2>
+                            
+                            <!-- se der certo, posso jogar fora. <h2 class="text-2xl font-bold text-gray-800 mb-6">Entradas Registradas</h2> -->
+                            
+                            <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-gray-800">Entradas Registradas</h2>
+                            <button id="btn-export-excel" class="bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors flex-shrink-0">
+                            <svg class="w-5 h-5 inline-block -mt-1 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Exportar Planilha
+                            </button>
+                            </div>
+
+
                             <div class="flex-grow">
                                 <div class="hidden md:grid grid-cols-10 gap-4 pb-3 border-b text-sm font-semibold text-gray-500 uppercase"><div class="col-span-4">Data</div><div class="col-span-3">Tipo</div><div class="col-span-2">Valor</div><div class="col-span-1 text-right">Ações</div></div>
                                 <div id="entries-list" class="mt-4 space-y-4"></div>
@@ -407,7 +420,16 @@
         <div id="pagamentos-screen" class="hidden pt-24">
             <div class="container mx-auto p-4 sm:p-6 lg:p-8">
                 <div class="bg-white p-8 rounded-xl shadow-md">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Contas a Pagar</h2>
+                    <!-- JOGAR FORA
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6">Contas a Pagar</h2> -->
+
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold text-gray-800">Contas a Pagar</h2>
+                         <button id="btn-export-pagamentos" class="bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700   transition-colors flex-shrink-0">
+                          <svg class="w-5 h-5 inline-block -mt-1 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="  http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                          Exportar Filtro Atual
+                     </button>
+                    </div>
                     
                     <div id="monthly-summary-container" class="mb-8 p-4 bg-gray-50 rounded-lg border">
                         <div class="flex justify-between items-center mb-3">
@@ -505,18 +527,20 @@
                     <h2 class="text-3xl font-bold text-gray-800 mb-6">Análise Gráfica</h2>
 
                     <!-- FILTERS -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-gray-50 rounded-lg border">
-                        <div>
-                            <label for="graficos-year-filter" class="block text-sm font-medium text-gray-700">Ano</label>
-                            <select id="graficos-year-filter" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></select>
-                        </div>
-                        <div>
-                            <label for="graficos-month-filter" class="block text-sm font-medium text-gray-700">Mês</label>
-                            <select id="graficos-month-filter" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></select>
-                        </div>
-                        <div>
-                            <label for="graficos-tipo-empresa-filter" class="block text-sm font-medium text-gray-700">Tipo de Empresa</label>
-                            <select id="graficos-tipo-empresa-filter" class="mt-1 block w-full p-2 border border-gray-300 rounded-md"></select>
+                    <div class="mb-8 p-4 bg-gray-50 rounded-lg border">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Ano</label>
+                                <div id="graficos-year-filter-container" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Mês</label>
+                                <div id="graficos-month-filter-container" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Empresa</label>
+                                <div id="graficos-tipo-empresa-filter-container" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -529,11 +553,17 @@
                             </div>
                         </div>
                         <div class="bg-gray-50 p-6 rounded-lg">
-                            <h3 id="donut-chart-title" class="text-xl font-semibold text-gray-700 mb-4 text-center">Distribuição de Gastos por Tipo de Empresa</h3>
+                            <h3 id="donut-chart-title" class="text-xl font-semibold text-gray-700 mb-4 text-center">Distribuição de Dívidas por Tipo</h3>
                             <div class="relative h-96 flex items-center justify-center">
-                                <canvas id="donut-chart"></canvas>
+                                <canvas id="donut-chart-tipos"></canvas>
                             </div>
                         </div>
+                        <!--<div class="bg-gray-50 p-6 rounded-lg lg:col-span-2">
+                            <h3 id="donut-chart-contas-title" class="text-xl font-semibold text-gray-700 mb-4 text-center">Distribuição de Dívidas por Conta</h3>
+                            <div class="relative h-96 flex items-center justify-center">
+                                <canvas id="donut-chart-contas"></canvas>
+                            </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
@@ -1001,6 +1031,162 @@
             let allDbEntries = [];
             let entriesCurrentPage = 1;
             const entriesItemsPerPage = 10;
+            // --- DODI código prara emitr a planilha ---
+            // --- LÓGICA PARA EXPORTAR ENTRADAS PARA EXCEL ---
+            const exportEntriesToExcel = () => {
+                // Verifica se existem dados para exportar
+                if (allDbEntries.length === 0) {
+                    modal.show("Não há entradas registradas para exportar.", false);
+                    return;
+                }
+
+                // 1. Prepara os dados, selecionando e renomeando as colunas
+                const dataForSheet = allDbEntries.map(entry => ({
+                    'Data e Hora': new Date(entry.data).toLocaleString('pt-BR', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    }),
+                    'Tipo de Entrada': entry.tipo,
+                    'Valor (R$)': entry.valor, // O valor já é um número
+                    'Observação': entry.observacao || '' // Garante que não seja undefined
+                }));
+
+                // 2. Cria a planilha (worksheet) a partir dos dados formatados
+                const worksheet = XLSX.utils.json_to_sheet(dataForSheet);
+
+                // 3. (Opcional) Ajusta a largura das colunas para melhor visualização
+                worksheet['!cols'] = [
+                    { wch: 20 }, // Coluna "Data e Hora"
+                    { wch: 20 }, // Coluna "Tipo de Entrada"
+                    { wch: 15 }, // Coluna "Valor (R$)"
+                    { wch: 50 }  // Coluna "Observação"
+                ];
+
+                // 4. (Opcional) Aplica o formato de moeda na coluna de valor
+                const range = XLSX.utils.decode_range(worksheet['!ref']);
+                for (let R = range.s.r + 1; R <= range.e.r; ++R) { // Pula o cabeçalho
+                    const cell_address = { c: 2, r: R }; // Coluna C (Valor)
+                    const cell_ref = XLSX.utils.encode_cell(cell_address);
+                    if(worksheet[cell_ref]) {
+                         worksheet[cell_ref].t = 'n'; // Define o tipo como número
+                         worksheet[cell_ref].z = 'R$ #,##0.00'; // Define o formato
+                    }
+                }
+
+                // 5. Cria um novo "livro" de planilha
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Entradas");
+
+                // 6. Gera o arquivo .xlsx e inicia o download
+                XLSX.writeFile(workbook, `Relatorio_Entradas_FFA_${new Date().toISOString().slice(0,10)}.xlsx`);
+            };
+
+            // Adiciona o evento de clique ao novo botão
+            const btnExportExcel = document.getElementById('btn-export-excel');
+            btnExportExcel.addEventListener('click', exportEntriesToExcel);
+            
+            /* FIM DO BLOCO PARA COLAR */
+
+            // --- DODI3  LÓGICA PARA EXPORTAR PAGAMENTOS PARA EXCEL ---
+const exportPaymentsToExcel = () => {
+    // Pega os mesmos filtros que o usuário está vendo na tela
+    const searchTerm = pagamentosSearchInput.value.toLowerCase();
+    const monthFilter = pagamentosMonthFilter.value;
+    const filterCaixinha = pagamentosFilterCaixinha.checked;
+
+    const contasMap = new Map(cadastroManager.state.contas.all.map(c => [String(c.id), c]));
+    const pessoasMap = new Map(cadastroManager.state.pessoas.all.map(p => [String(p.id), p.nome]));
+
+    // Replica a mesma lógica de filtro da função renderPagamentosList
+    const filteredSaidas = allSaidas.filter(saida => {
+        if (saida.dataPagamento) return false; // Apenas contas não pagas
+
+        const isCaixinha = saida.isCaixinhaInstallment;
+        let descriptionToSearch = '';
+        if (isCaixinha) {
+            const caixinha = caixinhas.find(c => c.id === saida.caixinhaId);
+            descriptionToSearch = `Caixinha: ${caixinha ? caixinha.name : 'N/A'} - Parcela ${saida.parcelaInfo}`;
+        } else {
+            const conta = contasMap.get(String(saida.contaId));
+            const baseDescription = conta ? getContaLabel(conta) : '';
+            const extraDescription = saida.descricao || '';
+            descriptionToSearch = `${baseDescription} ${extraDescription}`;
+        }
+
+        const searchMatch = descriptionToSearch.toLowerCase().includes(searchTerm);
+        const monthMatch = !monthFilter || saida.vencimento.startsWith(monthFilter);
+        const caixinhaFilterMatch = !filterCaixinha || isCaixinha;
+        return searchMatch && monthMatch && caixinhaFilterMatch;
+    });
+
+    if (filteredSaidas.length === 0) {
+        modal.show("Não há contas para exportar com os filtros atuais.", false);
+        return;
+    }
+
+    // Prepara os dados para a planilha
+    const dataForSheet = filteredSaidas.map(saida => {
+        const conta = contasMap.get(String(saida.contaId));
+        const pessoaNome = pessoasMap.get(String(saida.pessoaId)) || 'N/A';
+        
+        let contaLabel = 'N/A';
+        if (saida.isCaixinhaInstallment) {
+            const caixinha = caixinhas.find(c => c.id === saida.caixinhaId);
+            contaLabel = `Caixinha: ${caixinha ? caixinha.name : 'Removida'}`;
+        } else if (conta) {
+            contaLabel = getContaLabel(conta);
+        }
+        
+        const hoje = new Date().setHours(0, 0, 0, 0);
+        const vencimento = new Date(saida.vencimento + 'T12:00:00').setHours(0, 0, 0, 0);
+        const status = vencimento < hoje ? 'Vencida' : 'Pendente';
+
+        return {
+            'Vencimento': formatDateOnly(saida.vencimento),
+            'Status': status,
+            'Conta': contaLabel,
+            'Dono da Conta': pessoaNome,
+            'Descrição Adicional': saida.descricao || '',
+            'Parcela': saida.parcelaInfo || '1/1',
+            'Valor (R$)': saida.valor
+        };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(dataForSheet);
+
+    // Ajusta a largura das colunas
+    worksheet['!cols'] = [
+        { wch: 12 }, // Vencimento
+        { wch: 12 }, // Status
+        { wch: 40 }, // Conta
+        { wch: 25 }, // Dono da Conta
+        { wch: 40 }, // Descrição
+        { wch: 10 }, // Parcela
+        { wch: 15 }  // Valor
+    ];
+
+    // Formata a coluna de valor como moeda
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+        const cell_address = { c: 6, r: R }; // Coluna G (Valor)
+        const cell_ref = XLSX.utils.encode_cell(cell_address);
+        if(worksheet[cell_ref]) {
+             worksheet[cell_ref].t = 'n';
+             worksheet[cell_ref].z = 'R$ #,##0.00';
+        }
+    }
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Contas a Pagar");
+
+    XLSX.writeFile(workbook, `Relatorio_Pagamentos_FFA_${new Date().toISOString().slice(0,10)}.xlsx`);
+};
+
+// Adiciona o evento de clique ao novo botão de pagamentos
+const btnExportPagamentos = document.getElementById('btn-export-pagamentos');
+btnExportPagamentos.addEventListener('click', exportPaymentsToExcel);
+
+//* DODI3 FIM DO CÓDIGO DE PLANILHA XLSX DO PAGAMENTOS 
 
             entryValueInput.addEventListener('input', (e) => {
                 let value = e.target.value.replace(/\D/g, '');
@@ -2059,166 +2245,213 @@
             });
 
             // --- LÓGICA GRÁFICOS ---
-            const graficosYearFilter = document.getElementById('graficos-year-filter');
-            const graficosMonthFilter = document.getElementById('graficos-month-filter');
-            const graficosTipoEmpresaFilter = document.getElementById('graficos-tipo-empresa-filter');
+            const graficosYearFilterContainer = document.getElementById('graficos-year-filter-container');
+            const graficosMonthFilterContainer = document.getElementById('graficos-month-filter-container');
+            const graficosTipoEmpresaFilterContainer = document.getElementById('graficos-tipo-empresa-filter-container');
             const donutChartTitle = document.getElementById('donut-chart-title');
+           // const donutChartContasTitle = document.getElementById('donut-chart-contas-title');
+            const donutChartContasCanvas = document.getElementById('donut-chart-contas');
 
             let monthlyChartInstance = null;
-            let donutChartInstance = null;
+            let donutChartTiposInstance = null;
+           // let donutChartContasInstance = null;
 
             function populateChartFilters() {
+                const createCheckboxes = (container, items, type) => {
+                    container.innerHTML = '';
+                    items.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center';
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = `${type}-${item.value}`;
+                        checkbox.value = item.value;
+                        checkbox.className = 'h-4 w-4 text-indigo-600 border-gray-300 rounded';
+                        checkbox.addEventListener('change', updateCharts);
+                        const label = document.createElement('label');
+                        label.htmlFor = `${type}-${item.value}`;
+                        label.textContent = item.label;
+                        label.className = 'ml-2 block text-sm text-gray-900';
+                        div.appendChild(checkbox);
+                        div.appendChild(label);
+                        container.appendChild(div);
+                    });
+                };
+
                 // Preencher Anos
                 const years = new Set();
                 [...allDbEntries, ...allSaidas].forEach(item => {
                     const date = new Date(item.data || item.dataPagamento || item.vencimento);
                     if (!isNaN(date)) years.add(date.getFullYear());
                 });
-                graficosYearFilter.innerHTML = '<option value="">Todos</option>';
-                [...years].sort((a,b) => b - a).forEach(year => {
-                    graficosYearFilter.innerHTML += `<option value="${year}">${year}</option>`;
-                });
-                graficosYearFilter.value = new Date().getFullYear();
+                const yearItems = [...years].sort((a,b) => b - a).map(y => ({ value: y, label: y }));
+                createCheckboxes(graficosYearFilterContainer, yearItems, 'year');
 
                 // Preencher Meses
                 const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-                graficosMonthFilter.innerHTML = '<option value="">Todos</option>';
-                monthNames.forEach((month, index) => {
-                    graficosMonthFilter.innerHTML += `<option value="${index}">${month}</option>`;
-                });
-                graficosMonthFilter.value = "";
+                const monthItems = monthNames.map((m, i) => ({ value: i, label: m }));
+                createCheckboxes(graficosMonthFilterContainer, monthItems, 'month');
 
                 // Preencher Tipos de Empresa
-                graficosTipoEmpresaFilter.innerHTML = '<option value="">Todos os Tipos</option>';
-                cadastroManager.state.tipos.all.forEach(tipo => {
-                    graficosTipoEmpresaFilter.innerHTML += `<option value="${tipo.id}">${tipo.nome}</option>`;
-                });
+                const tipoItems = cadastroManager.state.tipos.all.map(t => ({ value: t.id, label: t.nome }));
+                createCheckboxes(graficosTipoEmpresaFilterContainer, tipoItems, 'tipo');
             }
 
+            function getSelectedFilters(containerId) {
+                return [...document.querySelectorAll(`#${containerId} input:checked`)].map(cb => cb.value);
+            }
+
+       
             function updateCharts() {
-                if (!checkAllCadastrosLoaded()) return;
+    if (!checkAllCadastrosLoaded()) return;
 
-                const year = graficosYearFilter.value;
-                const month = graficosMonthFilter.value;
-                const tipoEmpresaId = graficosTipoEmpresaFilter.value;
+    const selectedYears = getSelectedFilters('graficos-year-filter-container').map(Number);
+    const selectedMonths = getSelectedFilters('graficos-month-filter-container').map(Number);
+    const selectedTipos = getSelectedFilters('graficos-tipo-empresa-filter-container');
 
-                const filteredEntries = allDbEntries.filter(entry => {
-                    const date = new Date(entry.data);
-                    const yearMatch = !year || date.getFullYear() == year;
-                    const monthMatch = !month || date.getMonth() == month;
-                    return yearMatch && monthMatch;
-                });
+    // CORREÇÃO APLICADA AQUI
+    const filteredEntries = allDbEntries.filter(entry => {
+        const date = new Date(entry.data); // A data da entrada já tem hora, não precisa de ajuste.
+        const yearMatch = selectedYears.length === 0 || selectedYears.includes(date.getFullYear());
+        const monthMatch = selectedMonths.length === 0 || selectedMonths.includes(date.getMonth());
+        return yearMatch && monthMatch;
+    });
 
-                const filteredSaidas = allSaidas.filter(saida => {
-                    const date = new Date(saida.dataPagamento || saida.vencimento);
-                    const yearMatch = !year || date.getFullYear() == year;
-                    const monthMatch = !month || date.getMonth() == month;
-                    return yearMatch && monthMatch;
-                });
+    // CORREÇÃO APLICADA AQUI
+    const filteredSaidas = allSaidas.filter(saida => {
+        const date = new Date(saida.vencimento + 'T12:00:00'); // Adicionado T12:00:00
+        const yearMatch = selectedYears.length === 0 || selectedYears.includes(date.getFullYear());
+        const monthMatch = selectedMonths.length === 0 || selectedMonths.includes(date.getMonth());
+        return yearMatch && monthMatch;
+    });
+    
+    renderMonthlyChart(filteredEntries, filteredSaidas);
+    renderDonutChartTipos(filteredSaidas, selectedTipos);
+}
 
-                renderMonthlyChart(filteredEntries, filteredSaidas);
-                renderDonutChart(filteredSaidas, tipoEmpresaId);
-            }
+function renderMonthlyChart(entries, saidas) {
+    const monthlyData = {};
+    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-            graficosYearFilter.addEventListener('change', updateCharts);
-            graficosMonthFilter.addEventListener('change', updateCharts);
-            graficosTipoEmpresaFilter.addEventListener('change', updateCharts);
-            
-            function renderMonthlyChart(entries, saidas) {
-                const monthlyData = {};
-                const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    entries.forEach(entry => {
+        const date = new Date(entry.data);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlyData[key]) monthlyData[key] = { entradas: 0, saidas: 0, label: `${monthNames[date.getMonth()]}/${String(date.getFullYear()).slice(2)}` };
+        monthlyData[key].entradas += entry.valor;
+    });
 
-                entries.forEach(entry => {
-                    const date = new Date(entry.data);
-                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                    if (!monthlyData[key]) monthlyData[key] = { entradas: 0, saidas: 0, label: `${monthNames[date.getMonth()]}/${String(date.getFullYear()).slice(2)}` };
-                    monthlyData[key].entradas += entry.valor;
-                });
+    // CORREÇÃO APLICADA AQUI
+    saidas.filter(s => s.dataPagamento).forEach(saida => {
+        const date = new Date(saida.dataPagamento); // dataPagamento já tem hora
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlyData[key]) monthlyData[key] = { entradas: 0, saidas: 0, label: `${monthNames[date.getMonth()]}/${String(date.getFullYear()).slice(2)}` };
+        monthlyData[key].saidas += saida.valorPago || saida.valor;
+    });
 
-                saidas.filter(s => s.dataPagamento).forEach(saida => {
-                    const date = new Date(saida.dataPagamento);
-                    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                    if (!monthlyData[key]) monthlyData[key] = { entradas: 0, saidas: 0, label: `${monthNames[date.getMonth()]}/${String(date.getFullYear()).slice(2)}` };
-                    monthlyData[key].saidas += saida.valorPago || saida.valor;
-                });
+    const sortedKeys = Object.keys(monthlyData).sort();
+    const labels = sortedKeys.map(key => monthlyData[key].label);
+    const entradasData = sortedKeys.map(key => monthlyData[key].entradas);
+    const saidasData = sortedKeys.map(key => monthlyData[key].saidas);
 
-                const sortedKeys = Object.keys(monthlyData).sort();
-                const labels = sortedKeys.map(key => monthlyData[key].label);
-                const entradasData = sortedKeys.map(key => monthlyData[key].entradas);
-                const saidasData = sortedKeys.map(key => monthlyData[key].saidas);
+    const ctx = document.getElementById('monthly-chart').getContext('2d');
+    if (monthlyChartInstance) monthlyChartInstance.destroy();
+    monthlyChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets: [ { label: 'Entradas (R$)', data: entradasData, backgroundColor: 'rgba(16, 185, 129, 0.6)' }, { label: 'Saídas Pagas (R$)', data: saidasData, backgroundColor: 'rgba(239, 68, 68, 0.6)' } ] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) } } }, plugins: { tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` } } } }
+    });
+}
 
-                const ctx = document.getElementById('monthly-chart').getContext('2d');
-                if (monthlyChartInstance) monthlyChartInstance.destroy();
-                monthlyChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: { labels, datasets: [ { label: 'Entradas (R$)', data: entradasData, backgroundColor: 'rgba(16, 185, 129, 0.6)' }, { label: 'Saídas Pagas (R$)', data: saidasData, backgroundColor: 'rgba(239, 68, 68, 0.6)' } ] },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { callback: (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) } } }, plugins: { tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` } } } }
-                });
-            }
-
-            function renderDonutChart(saidas, tipoEmpresaId) {
+            function renderDonutChartTipos(saidas, selectedTipos) {
                 const contasMap = new Map(cadastroManager.state.contas.all.map(c => [c.id, c]));
                 const empresasMap = new Map(cadastroManager.state.empresas.all.map(e => [e.id, e]));
                 const tiposMap = new Map(cadastroManager.state.tipos.all.map(t => [t.id, t]));
 
                 let dataGroup = {};
                 
-                const paidSaidas = saidas.filter(s => s.dataPagamento && !s.isCaixinhaInstallment);
+                const saidasToAnalyze = saidas.filter(s => !s.isCaixinhaInstallment);
 
-                if (tipoEmpresaId) {
-                    // Agrupar por Empresa dentro do Tipo selecionado
-                    const tipoSelecionado = tiposMap.get(tipoEmpresaId);
-                    donutChartTitle.textContent = `Gastos por Empresa em "${tipoSelecionado?.nome || 'N/A'}"`;
+                saidasToAnalyze.forEach(saida => {
+                    const conta = contasMap.get(saida.contaId);
+                    if (!conta) return;
+                    const empresa = empresasMap.get(conta.empresaId);
+                    if (!empresa) return;
+                    const tipo = tiposMap.get(empresa.tipoId);
+                    if (!tipo) return;
 
-                    paidSaidas.forEach(saida => {
+                    if (selectedTipos.length > 0 && !selectedTipos.includes(tipo.id)) return;
+
+                    if (!dataGroup[tipo.id]) dataGroup[tipo.id] = { name: tipo.nome, value: 0 };
+                    dataGroup[tipo.id].value += saida.valor;
+                });
+                
+                donutChartTitle.textContent = 'Distribuição de Dívidas por Tipo';
+                if (selectedTipos.length === 1) {
+                    const tipoSelecionado = tiposMap.get(selectedTipos[0]);
+                    donutChartTitle.textContent = `Dívidas por Empresa em "${tipoSelecionado?.nome || ''}"`;
+                    dataGroup = {};
+                    saidasToAnalyze.forEach(saida => {
                         const conta = contasMap.get(saida.contaId);
                         if (!conta) return;
                         const empresa = empresasMap.get(conta.empresaId);
-                        if (!empresa || empresa.tipoId !== tipoEmpresaId) return;
-
+                        if (!empresa || empresa.tipoId !== selectedTipos[0]) return;
                         if (!dataGroup[empresa.id]) dataGroup[empresa.id] = { name: empresa.nome, value: 0 };
-                        dataGroup[empresa.id].value += saida.valorPago || saida.valor;
-                    });
-
-                } else {
-                    // Agrupar por Tipo de Empresa
-                    donutChartTitle.textContent = 'Distribuição de Gastos por Tipo de Empresa';
-                    paidSaidas.forEach(saida => {
-                        const conta = contasMap.get(saida.contaId);
-                        if (!conta) return;
-                        const empresa = empresasMap.get(conta.empresaId);
-                        if (!empresa) return;
-                        const tipo = tiposMap.get(empresa.tipoId);
-                        if (!tipo) return;
-
-                        if (!dataGroup[tipo.id]) dataGroup[tipo.id] = { name: tipo.nome, value: 0 };
-                        dataGroup[tipo.id].value += saida.valorPago || saida.valor;
+                        dataGroup[empresa.id].value += saida.valor;
                     });
                 }
+                
+                const labels = Object.values(dataGroup).map(d => d.name);
+                const data = Object.values(dataGroup).map(d => d.value);
+
+                const ctx = document.getElementById('donut-chart-tipos').getContext('2d');
+                if (donutChartTiposInstance) donutChartTiposInstance.destroy();
+                donutChartTiposInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels, datasets: [{ label: 'Total (R$)', data, backgroundColor: ['#34D399', '#F87171', '#60A5FA', '#FBBF24', '#A78BFA', '#F472B6', '#2DD4BF', '#93C5FD'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${c.parsed.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` } } } }
+                });
+            }
+
+            function renderDonutChartContas(saidas, selectedTipos) {
+                const container = donutChartContasCanvas.parentElement;
+                if (selectedTipos.length !== 1) {
+                    container.innerHTML = `<canvas id="donut-chart-contas"></canvas><p class="text-center text-gray-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">Selecione um único Tipo de Empresa para ver o detalhamento por conta.</p>`;
+                    donutChartContasTitle.textContent = 'Distribuição de Dívidas por Conta';
+                    if (donutChartContasInstance) donutChartContasInstance.destroy();
+                    return;
+                }
+                
+                container.querySelector('p')?.remove();
+                
+                const tipoId = selectedTipos[0];
+                const contasMap = new Map(cadastroManager.state.contas.all.map(c => [c.id, c]));
+                const empresasMap = new Map(cadastroManager.state.empresas.all.map(e => [e.id, e]));
+                const tipoSelecionado = cadastroManager.state.tipos.all.find(t => t.id === tipoId);
+                
+                donutChartContasTitle.textContent = `Dívidas por Conta em "${tipoSelecionado?.nome || ''}"`;
+
+                let dataGroup = {};
+                const saidasToAnalyze = saidas.filter(s => !s.isCaixinhaInstallment);
+
+                saidasToAnalyze.forEach(saida => {
+                    const conta = contasMap.get(saida.contaId);
+                    if (!conta) return;
+                    const empresa = empresasMap.get(conta.empresaId);
+                    if (!empresa || empresa.tipoId !== tipoId) return;
+
+                    if (!dataGroup[conta.id]) dataGroup[conta.id] = { name: conta.nome, value: 0 };
+                    dataGroup[conta.id].value += saida.valor;
+                });
 
                 const labels = Object.values(dataGroup).map(d => d.name);
                 const data = Object.values(dataGroup).map(d => d.value);
 
-                const ctx = document.getElementById('donut-chart').getContext('2d');
-                if (donutChartInstance) donutChartInstance.destroy();
-                donutChartInstance = new Chart(ctx, {
+                const ctx = document.getElementById('donut-chart-contas').getContext('2d');
+                if (donutChartContasInstance) donutChartContasInstance.destroy();
+                donutChartContasInstance = new Chart(ctx, {
                     type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Total Gasto (R$)',
-                            data: data,
-                            backgroundColor: ['#34D399', '#F87171', '#60A5FA', '#FBBF24', '#A78BFA', '#F472B6', '#2DD4BF', '#93C5FD'],
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'top' },
-                            tooltip: { callbacks: { label: (c) => `${c.label}: ${c.parsed.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` } }
-                        }
-                    }
+                    data: { labels, datasets: [{ label: 'Total (R$)', data, backgroundColor: ['#3B82F6', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#6366F1'] }] },
+                     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${c.parsed.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` } } } }
                 });
             }
 
