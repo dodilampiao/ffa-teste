@@ -224,7 +224,7 @@
                     <div class="flex items-center">
                         <span id="logged-in-user-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hidden sm:block"></span>
                         <div id="version-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg cursor-pointer hover:bg-gray-700 transition-colors ml-3">
-                            Versão 2.15 recorrente
+                            Versão 2.17 rolar ao início da página
                         </div>
                         <button id="logout-btn" class="ml-3 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hover:bg-red-700 transition-colors">
                             Sair
@@ -392,9 +392,7 @@
                                     <label for="saida-descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                                     <textarea id="saida-descricao" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Compra de insumos, adiantamento, etc."></textarea>
                                 </div>
-                                <!-- Comentei para testar e colocar a nova função recorrencia dodi4
-                                <div><label for="saida-valor" class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$) <span class="text-red-500">*</span></label><input type="text" id="saida-valor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
-                                <div> -->
+                        
 
                                 <div><label for="saida-valor" id="saida-valor-label" class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$) <span class="text-red-500">*</span></label><input type="text" id="saida-valor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
 
@@ -403,8 +401,7 @@
                                     <label for="saida-vencimento" id="saida-vencimento-label" class="block text-sm font-medium text-gray-700 mb-1">Vencimento</label>
                                     <input type="date" id="saida-vencimento" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                                 </div>
-                                <!-- dodi5 pra tirar recorrencia
-                                <div class="flex items-center"><input id="saida-parcelado-check" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded"><label for="saida-parcelado-check" class="ml-2 block text-sm text-gray-900">Lançamento Parcelado?</label></div> -->
+                                
 
                                 <div class="flex items-center space-x-6 pt-2">
                                     <div class="flex items-center">
@@ -416,10 +413,7 @@
                                   <label for="saida-recorrente-check" class="ml-2 block text-sm text-gray-900">Pagamento Recorrente</label>
                                 </div>
                                 </div>    
-                                <!--    dodi6 recorrencia
-                                <div id="parcelamento-fields" class="hidden space-y-6">
-                                    <div><label for="saida-qtd-parcelas" class="block text-sm font-medium text-gray-700 mb-1">Qtd. Parcelas</label><input type="number" id="saida-qtd-parcelas" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="2"></div>
-                                </div> -->
+                                
 
                                 <div id="parcelamento-fields" class="hidden space-y-6">
                                 <div><label for="saida-qtd-parcelas" id="saida-qtd-parcelas-label" class="block text-sm font-medium text-gray-700 mb-1">Qtd. Parcelas</label><input type="number" id="saida-qtd-parcelas" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="2"></div>
@@ -1350,13 +1344,7 @@ btnExportPagamentos.addEventListener('click', exportPaymentsToExcel);
                 value = (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 e.target.value = value;
             });
-/*
-            parceladoCheck.addEventListener('change', (e) => {
-                parcelamentoFields.classList.toggle('hidden', !e.target.checked);
-                saidaVencimentoLabel.textContent = e.target.checked ? 'Vencimento da 1ª Parcela' : 'Vencimento';
-            }); */
 
-//dodi8
                             const recorrenteCheck = document.getElementById('saida-recorrente-check');
                 const qtdParcelasLabel = document.getElementById('saida-qtd-parcelas-label');
                 const valorLabel = document.getElementById('saida-valor-label');
@@ -1428,73 +1416,7 @@ btnExportPagamentos.addEventListener('click', exportPaymentsToExcel);
             });
 
             
-            //dodi9
-            /*
-            saidaForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                const contaId = saidaContaSelectedIdInput.value;
-                if (!contaId) {
-                    modal.show("Por favor, selecione uma conta válida da lista.", false);
-                    return;
-                }
 
-                const totalValue = parseCurrency(saidaForm['saida-valor'].value);
-                const isParcelado = saidaForm['saida-parcelado-check'].checked;
-                const qtdParcelas = parseInt(saidaForm['saida-qtd-parcelas'].value, 10);
-                const descricao = saidaForm['saida-descricao'].value.trim();
-
-                const baseSaida = {
-                    contaId: contaId,
-                    pessoaId: saidaForm['saida-pessoa-select'].value,
-                    descricao: descricao,
-                    dataLancamento: new Date().toISOString()
-                };
-
-                const batch = writeBatch(db);
-                const saidasCollection = collection(db, 'artifacts', appId, 'public', 'data', 'saidas');
-                const newSaidas = []; 
-
-                try {
-                    const vencimentoBase = new Date(saidaVencimentoInput.value + 'T12:00:00');
-
-                    if (isParcelado && qtdParcelas > 1) {
-                        const valorParcela = totalValue / qtdParcelas;
-                        
-                        for (let i = 0; i < qtdParcelas; i++) {
-                            const vencimentoParcela = new Date(vencimentoBase);
-                            vencimentoParcela.setMonth(vencimentoBase.getMonth() + i);
-
-                            const newSaidaData = {
-                                ...baseSaida,
-                                valor: valorParcela,
-                                vencimento: vencimentoParcela.toISOString().split('T')[0],
-                                parcelaInfo: `${i + 1}/${qtdParcelas}`
-                            };
-                            const newSaidaDocRef = doc(saidasCollection);
-                            batch.set(newSaidaDocRef, newSaidaData);
-                            newSaidas.push({ id: newSaidaDocRef.id, ...newSaidaData }); 
-                        }
-                    } else {
-                        const newSaidaData = {
-                            ...baseSaida,
-                            valor: totalValue,
-                            vencimento: vencimentoBase.toISOString().split('T')[0],
-                            parcelaInfo: '1/1'
-                        };
-                        const newSaidaDocRef = doc(saidasCollection);
-                        batch.set(newSaidaDocRef, newSaidaData);
-                        newSaidas.push({ id: newSaidaDocRef.id, ...newSaidaData }); 
-                    }
-
-                    await batch.commit();
-                    resetSaidaForm();
-                    renderSaidasList(newSaidas);
-                } catch (error) {
-                    modal.show(`Erro ao lançar saída(s). Detalhes: ${error.message}`, false);
-                }
-            }); */
-            //dodi9
             
 saidaForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1671,7 +1593,8 @@ saidaForm.addEventListener('submit', async (e) => {
                 toggleSummaryIcon.classList.toggle('rotate-180');
             });
 
-            const calculateAndRenderMonthlySummary = () => {
+
+             const calculateAndRenderMonthlySummary = () => {
                 const monthlyData = {};
                 const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
@@ -1713,7 +1636,12 @@ saidaForm.addEventListener('submit', async (e) => {
                     const isCurrentMonth = key === currentMonthKey;
 
                     const card = document.createElement('div');
-                    card.className = `flex-shrink-0 w-64 p-4 rounded-lg border ${isCurrentMonth ? 'bg-teal-50 border-teal-500' : 'bg-white'}`;
+                    // MODIFICAÇÃO: Adicionado cursor-pointer e efeito hover para indicar que é clicável
+                    card.className = `flex-shrink-0 w-64 p-4 rounded-lg border cursor-pointer hover:shadow-lg hover:border-teal-400 transition-all duration-200 ${isCurrentMonth ? 'bg-teal-50 border-teal-500' : 'bg-white'}`;
+                    
+                    // MODIFICAÇÃO: Adicionado o atributo 'data-month' com o valor YYYY-MM
+                    card.dataset.month = key;
+
                     card.innerHTML = `
                         <h4 class="font-bold text-gray-800">${data.mes} ${data.ano}</h4>
                         <div class="mt-2 space-y-1 text-sm">
@@ -1731,6 +1659,22 @@ saidaForm.addEventListener('submit', async (e) => {
                             </div>
                         </div>
                     `;
+
+                    // MODIFICAÇÃO: Adicionado o evento de clique para filtrar a lista
+                    card.addEventListener('click', () => {
+                        // Pega o valor YYYY-MM do atributo que definimos
+                        const monthToFilter = card.dataset.month;
+                        
+                        // Encontra o campo de filtro de mês e define seu valor
+                        pagamentosMonthFilter.value = monthToFilter;
+                        
+                        // Reseta para a primeira página da paginação
+                        pagamentosCurrentPage = 1;
+
+                        // Chama a função que renderiza a lista, que já usa o valor desse campo para filtrar
+                        renderPagamentosList();
+                    });
+
                     monthlySummaryScroller.appendChild(card);
                 });
             };
@@ -2071,7 +2015,8 @@ saidaForm.addEventListener('submit', async (e) => {
                 if (pagamentosCurrentPage > 1) { 
                     pagamentosCurrentPage--; 
                     renderPagamentosList(); 
-                    document.getElementById('pagamentos-list-container').scrollIntoView({ behavior: 'smooth' });
+                   //dodi22 document.getElementById('pagamentos-list-container').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('pagamentos-screen').scrollIntoView({ behavior: 'smooth' });
                 } 
             });
 
@@ -2081,7 +2026,8 @@ saidaForm.addEventListener('submit', async (e) => {
                 if (pagamentosCurrentPage < totalPages) { 
                     pagamentosCurrentPage++; 
                     renderPagamentosList(); 
-                    document.getElementById('pagamentos-list-container').scrollIntoView({ behavior: 'smooth' });
+                    //dodi22 document.getElementById('pagamentos-list-container').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('pagamentos-screen').scrollIntoView({ behavior: 'smooth' });
                 }
             });
 
