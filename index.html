@@ -224,7 +224,7 @@
                     <div class="flex items-center">
                         <span id="logged-in-user-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hidden sm:block"></span>
                         <div id="version-display" class="text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg cursor-pointer hover:bg-gray-700 transition-colors ml-3">
-                            Versão 2.13 xlsx pgto
+                            Versão 2.15 recorrente
                         </div>
                         <button id="logout-btn" class="ml-3 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-lg hover:bg-red-700 transition-colors">
                             Sair
@@ -328,7 +328,13 @@
                         <div class="bg-white p-8 rounded-xl shadow-md">
                             <h2 class="text-2xl font-bold text-gray-800 mb-6">Nova Entrada</h2>
                             <form id="entry-form" class="space-y-6">
-                                <div><label for="entry-tipo" class="block text-sm font-medium text-gray-700 mb-1">Tipo <span class="text-red-500">*</span></label><select id="entry-tipo" name="tipo" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"><option value="Venda">Venda</option><option value="Arrendamento">Arrendamento</option></select></div>
+                                <div><label for="entry-tipo" class="block text-sm font-medium text-gray-700 mb-1">Tipo <span class="text-red-500">*</span></label><select id="entry-tipo" name="tipo" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+                                    <option value="Venda">Venda</option>
+                                    <option value="Emprestimo">Emprestimo</option>
+                                    <option value="Cheque Especial">Cheque Especial</option>
+                                    <option value="Arrendamento">Arrendamento</option>
+
+                                </select></div>
                                 <div><label for="entry-data" class="block text-sm font-medium text-gray-700 mb-1">Data <span class="text-red-500">*</span></label><input type="datetime-local" id="entry-data" name="data" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></div>
                                 <div><label for="entry-valor" class="block text-sm font-medium text-gray-700 mb-1">Valor (R$) <span class="text-red-500">*</span></label><input type="text" id="entry-valor" name="valor" placeholder="R$ 0,00" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition"></div>
                                 <div><label for="entry-observacao" class="block text-sm font-medium text-gray-700 mb-1">Observação</label><textarea id="entry-observacao" name="observacao" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition" placeholder="Detalhes da venda, cliente, etc."></textarea></div>
@@ -386,15 +392,39 @@
                                     <label for="saida-descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                                     <textarea id="saida-descricao" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Ex: Compra de insumos, adiantamento, etc."></textarea>
                                 </div>
+                                <!-- Comentei para testar e colocar a nova função recorrencia dodi4
                                 <div><label for="saida-valor" class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$) <span class="text-red-500">*</span></label><input type="text" id="saida-valor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                                <div> -->
+
+                                <div><label for="saida-valor" id="saida-valor-label" class="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$) <span class="text-red-500">*</span></label><input type="text" id="saida-valor" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+
+
                                 <div>
                                     <label for="saida-vencimento" id="saida-vencimento-label" class="block text-sm font-medium text-gray-700 mb-1">Vencimento</label>
                                     <input type="date" id="saida-vencimento" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                                 </div>
-                                <div class="flex items-center"><input id="saida-parcelado-check" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded"><label for="saida-parcelado-check" class="ml-2 block text-sm text-gray-900">Lançamento Parcelado?</label></div>
+                                <!-- dodi5 pra tirar recorrencia
+                                <div class="flex items-center"><input id="saida-parcelado-check" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded"><label for="saida-parcelado-check" class="ml-2 block text-sm text-gray-900">Lançamento Parcelado?</label></div> -->
+
+                                <div class="flex items-center space-x-6 pt-2">
+                                    <div class="flex items-center">
+                                        <input id="saida-parcelado-check" name="tipo-lancamento" type="radio" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                                           <label for="saida-parcelado-check" class="ml-2 block text-sm text-gray-900">Lançamento Parcelado</label>
+                                </div>
+                                 <div class="flex items-center">
+                                  <input id="saida-recorrente-check" name="tipo-lancamento" type="radio" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                                  <label for="saida-recorrente-check" class="ml-2 block text-sm text-gray-900">Pagamento Recorrente</label>
+                                </div>
+                                </div>    
+                                <!--    dodi6 recorrencia
                                 <div id="parcelamento-fields" class="hidden space-y-6">
                                     <div><label for="saida-qtd-parcelas" class="block text-sm font-medium text-gray-700 mb-1">Qtd. Parcelas</label><input type="number" id="saida-qtd-parcelas" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="2"></div>
-                                </div>
+                                </div> -->
+
+                                <div id="parcelamento-fields" class="hidden space-y-6">
+                                <div><label for="saida-qtd-parcelas" id="saida-qtd-parcelas-label" class="block text-sm font-medium text-gray-700 mb-1">Qtd. Parcelas</label><input type="number" id="saida-qtd-parcelas" class="w-full px-4 py-2 border border-gray-300 rounded-lg" min="2"></div>
+                               </div>                                    
+
                                 <div><button type="submit" class="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700">Lançar Saída</button></div>
                             </form>
                         </div>
@@ -1320,11 +1350,41 @@ btnExportPagamentos.addEventListener('click', exportPaymentsToExcel);
                 value = (parseInt(value, 10) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 e.target.value = value;
             });
-
+/*
             parceladoCheck.addEventListener('change', (e) => {
                 parcelamentoFields.classList.toggle('hidden', !e.target.checked);
                 saidaVencimentoLabel.textContent = e.target.checked ? 'Vencimento da 1ª Parcela' : 'Vencimento';
-            });
+            }); */
+
+//dodi8
+                            const recorrenteCheck = document.getElementById('saida-recorrente-check');
+                const qtdParcelasLabel = document.getElementById('saida-qtd-parcelas-label');
+                const valorLabel = document.getElementById('saida-valor-label');
+
+                function handleLancamentoTypeChange() {
+                    const isParcelado = parceladoCheck.checked;
+                    const isRecorrente = recorrenteCheck.checked;
+
+                    parcelamentoFields.classList.toggle('hidden', !isParcelado && !isRecorrente);
+
+                    if (isParcelado) {
+                        valorLabel.textContent = 'Valor Total (R$) *';
+                        saidaVencimentoLabel.textContent = 'Vencimento da 1ª Parcela';
+                        qtdParcelasLabel.textContent = 'Qtd. Parcelas';
+                    } else if (isRecorrente) {
+                        valorLabel.textContent = 'Valor da Recorrência (R$) *';
+                        saidaVencimentoLabel.textContent = 'Vencimento da 1ª Recorrência';
+                        qtdParcelasLabel.textContent = 'Repetir por (meses)';
+                    } else {
+                        valorLabel.textContent = 'Valor Total (R$) *';
+                        saidaVencimentoLabel.textContent = 'Vencimento';
+                    }
+                }
+
+                parceladoCheck.addEventListener('change', handleLancamentoTypeChange);
+                recorrenteCheck.addEventListener('change', handleLancamentoTypeChange);
+
+// fim aqui dodi8
 
             const renderContaResults = (searchTerm = '') => {
                 const lowerCaseSearchTerm = searchTerm.toLowerCase();
@@ -1367,6 +1427,9 @@ btnExportPagamentos.addEventListener('click', exportPaymentsToExcel);
                 }
             });
 
+            
+            //dodi9
+            /*
             saidaForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 
@@ -1430,8 +1493,94 @@ btnExportPagamentos.addEventListener('click', exportPaymentsToExcel);
                 } catch (error) {
                     modal.show(`Erro ao lançar saída(s). Detalhes: ${error.message}`, false);
                 }
-            });
+            }); */
+            //dodi9
             
+saidaForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const contaId = saidaContaSelectedIdInput.value;
+    if (!contaId) {
+        modal.show("Por favor, selecione uma conta válida da lista.", false);
+        return;
+    }
+
+    const valor = parseCurrency(saidaForm['saida-valor'].value);
+    const isParcelado = saidaForm['saida-parcelado-check'].checked;
+    const isRecorrente = document.getElementById('saida-recorrente-check').checked;
+    const qtd = parseInt(saidaForm['saida-qtd-parcelas'].value, 10);
+    const descricao = saidaForm['saida-descricao'].value.trim();
+
+    const baseSaida = {
+        contaId: contaId,
+        pessoaId: saidaForm['saida-pessoa-select'].value,
+        descricao: descricao,
+        dataLancamento: new Date().toISOString()
+    };
+
+    const batch = writeBatch(db);
+    const saidasCollection = collection(db, 'artifacts', appId, 'public', 'data', 'saidas');
+    const newSaidas = []; 
+    const vencimentoBase = new Date(saidaVencimentoInput.value + 'T12:00:00');
+
+    try {
+        if (isRecorrente && qtd > 0) {
+            // Lógica para Pagamento Recorrente
+            for (let i = 0; i < qtd; i++) {
+                const vencimentoParcela = new Date(vencimentoBase);
+                vencimentoParcela.setMonth(vencimentoBase.getMonth() + i);
+                const newSaidaData = {
+                    ...baseSaida,
+                    valor: valor, // O valor é o mesmo para cada recorrência
+                    vencimento: vencimentoParcela.toISOString().split('T')[0],
+                    parcelaInfo: `${i + 1}/${qtd}`
+                };
+                const newSaidaDocRef = doc(saidasCollection);
+                batch.set(newSaidaDocRef, newSaidaData);
+                newSaidas.push({ id: newSaidaDocRef.id, ...newSaidaData });
+            }
+        } else if (isParcelado && qtd > 1) {
+            // Lógica para Lançamento Parcelado
+            const valorParcela = valor / qtd;
+            for (let i = 0; i < qtd; i++) {
+                const vencimentoParcela = new Date(vencimentoBase);
+                vencimentoParcela.setMonth(vencimentoBase.getMonth() + i);
+                const newSaidaData = {
+                    ...baseSaida,
+                    valor: valorParcela,
+                    vencimento: vencimentoParcela.toISOString().split('T')[0],
+                    parcelaInfo: `${i + 1}/${qtd}`
+                };
+                const newSaidaDocRef = doc(saidasCollection);
+                batch.set(newSaidaDocRef, newSaidaData);
+                newSaidas.push({ id: newSaidaDocRef.id, ...newSaidaData });
+            }
+        } else {
+            // Lógica para Lançamento Único (nenhuma opção marcada)
+            const newSaidaData = {
+                ...baseSaida,
+                valor: valor,
+                vencimento: vencimentoBase.toISOString().split('T')[0],
+                parcelaInfo: '1/1'
+            };
+            const newSaidaDocRef = doc(saidasCollection);
+            batch.set(newSaidaDocRef, newSaidaData);
+            newSaidas.push({ id: newSaidaDocRef.id, ...newSaidaData });
+        }
+
+        await batch.commit();
+        resetSaidaForm();
+        // Desmarcar os radio buttons após o envio
+        parceladoCheck.checked = false;
+        recorrenteCheck.checked = false;
+        handleLancamentoTypeChange(); // Atualiza a UI para o estado padrão
+        renderSaidasList(newSaidas);
+    } catch (error) {
+        modal.show(`Erro ao lançar saída(s). Detalhes: ${error.message}`, false);
+    }
+});
+
+
             function renderSaidasList(saidasToRender) {
                 const listEl = document.getElementById('saidas-list-container');
                 const totalEl = document.getElementById('saidas-total');
